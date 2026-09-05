@@ -6,20 +6,23 @@
     <title>Anantha - Portfolio</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
+    <!-- Site Navigation -->
     <header class="site-header">
         <div class="container">
-            <a href="#profile" class="brand">Nantha</a>
+            <a href="#profile" class="brand">Nantha's Portofolio</a>
             <nav>
                 <a href="#profile">Profile</a>
+                <a href="#projects">Projects</a>
             </nav>
         </div>
     </header>
 
     <main>
+        <!-- Section 1: About / Profile (Tutorial 01) -->
         <section class="hero" id="profile">
             <div class="container hero-grid">
                 <div class="hero-identity">
@@ -31,7 +34,7 @@
                     <img class="avatar" src="/static/img/profile.jpeg" alt="Photo of Nantha">
                 </div>
                 <div class="hero-details">
-                    <p class="bio">CS student at Universitas Indonesia for longer than planned, now a familiar (and slightly dreaded) face among Fasilkom students as a teaching assistant across several courses.</p>
+                    <p class="bio">Third-Year CS student at Universitas Indonesia with a strong quantitative background. Highly passionate about Artificial Intelligence, Machine Learning, Data Science, Software Engineering, and Data Analytics, with hands-on proficiency in data pipeline engineering, EDA, and predictive modeling. Driven to leverage advanced algorithmic solutions and data-driven insights to solve complex, data-heavy challenges.</p>
                     <dl class="meta-list">
                         <div class="meta-row">
                             <dt>NPM</dt>
@@ -43,15 +46,101 @@
                         </div>
                     </dl>
                     <div class="social-links">
-                        <a href="https://github.com/ananthakamal-lgtm" class="social-link">GitHub</a>
-                        <a href="https://www.linkedin.com/in/anantha-kamal-eirian-10a604321/" class="social-link">LinkedIn</a>
-                        <a href="nanthakamaljkt24@gmail.com" class="social-link">Email</a>
+                        <a href="https://github.com/Nik-byte-coder" class="social-link" target="_blank" rel="noopener noreferrer">GitHub</a>
+                        <a href="https://www.linkedin.com/in/anantha-kamal-eirian-10a604321/" class="social-link" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+                        <a href="mailto:nanthakamaljkt24@gmail.com" class="social-link" target="_blank">Email</a>
                     </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Featured Projects (Assignment 01) -->
+        <section class="projects-section" id="projects">
+            <div class="container">
+                <div class="section-header">
+                    <p class="section-kicker">Selected Works</p>
+                    <h2>Featured Projects</h2>
+                    <p class="section-desc">A curation of technical initiatives in computer vision, predictive modeling, and platform engineering.</p>
+                </div>
+
+                <div class="projects-grid">
+                    <!-- Project 1: Automated Manga Translator -->
+                    <article class="project-card">
+                        <div class="project-header">
+                            <span class="project-category">Computer Vision &middot; NLP</span>
+                            <span class="project-year">2026</span>
+                        </div>
+                        <h3 class="project-title">Automated Manga Translator</h3>
+                        <p class="project-summary">
+                            End-to-end pipeline to automate text detection, OCR extraction, and context-aware translation in raw manga panels. Integrated an intuitive web interface for rapid inference.
+                        </p>
+                        <div class="project-tech">
+                            <span class="tag">Python</span>
+                            <span class="tag">YOLO</span>
+                            <span class="tag">Manga OCR</span>
+                            <span class="tag">Gradio</span>
+                        </div>
+                        <div class="project-footer">
+                            <a href="https://huggingface.co/spaces/nishfers/manga-translator" class="project-btn-demo" target="_blank" rel="noopener noreferrer">
+                                Live Demo &nearr;
+                            </a>
+                            <a href="https://github.com/ananthakamal-lgtm" class="project-link" target="_blank" rel="noopener noreferrer">
+                                Repository &rarr;
+                            </a>
+                        </div>
+                    </article>
+
+                    <!-- Project 2: IR Chemical Hazard Regression -->
+                    <article class="project-card">
+                        <div class="project-header">
+                            <span class="project-category">Machine Learning</span>
+                            <span class="project-year">2026</span>
+                        </div>
+                        <h3 class="project-title">IR Chemical Hazard Regression</h3>
+                        <p class="project-summary">
+                            Multi-target regression architecture for predictive hazard estimation using Infrared (IR) spectroscopy signal profiles. Implemented signal preprocessing and residual minimization.
+                        </p>
+                        <div class="project-tech">
+                            <span class="tag">Scikit-Learn</span>
+                            <span class="tag">NumPy</span>
+                            <span class="tag">Pandas</span>
+                            <span class="tag">Signal Processing</span>
+                        </div>
+                        <div class="project-footer">
+                            <a href="https://github.com/Nik-byte-coder/ir-spectroscopy-danger-classification" class="project-link" target="_blank" rel="noopener noreferrer">
+                                View Repository &rarr;
+                            </a>
+                        </div>
+                    </article>
+
+                    <!-- Project 3: Pig Posture Recognition -->
+                    <article class="project-card">
+                        <div class="project-header">
+                            <span class="project-category">Computer Vision &middot; Deep Learning</span>
+                            <span class="project-year">2026</span>
+                        </div>
+                        <h3 class="project-title">Pig Posture Recognition</h3>
+                        <p class="project-summary">
+                            Deep learning computer vision system engineered to detect and classify livestock body postures (standing, lying, and sitting) to enable automated behavioral monitoring and early health assessment.
+                        </p>
+                        <div class="project-tech">
+                            <span class="tag">Python</span>
+                            <span class="tag">PyTorch</span>
+                            <span class="tag">OpenCV</span>
+                            <span class="tag">Deep Learning</span>
+                        </div>
+                        <div class="project-footer">
+                            <a href="https://github.com/Nik-byte-coder/pig-posture-recognition" class="project-link" target="_blank" rel="noopener noreferrer">
+                                View Repository &rarr;
+                            </a>
+                        </div>
+                    </article>
                 </div>
             </div>
         </section>
     </main>
 
+    <!-- Site Footer -->
     <footer class="site-footer">
         <div class="container">
             <p>&copy; 2026 Nantha. Fakultas Ilmu Komputer, Universitas Indonesia.</p>

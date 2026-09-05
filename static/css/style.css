@@ -7,11 +7,14 @@
 :root {
     --ink: #1c1917;
     --paper: #faf6f0;
+    --paper-card: #ffffff;
     --accent: #d95d39;
     --accent-dark: #a8442a;
     --line: #e3d9c9;
     --text-muted: #6b6459;
     --radius: 4px;
+    --shadow-solid: 4px 4px 0px var(--ink);
+    --transition: all 0.2s ease;
 }
 
 body {
@@ -19,9 +22,10 @@ body {
     color: var(--ink);
     background-color: var(--paper);
     line-height: 1.6;
+    scroll-behavior: smooth;
 }
 
-h1, .brand {
+h1, h2, h3, .brand {
     font-family: "Space Grotesk", -apple-system, sans-serif;
 }
 
@@ -31,8 +35,15 @@ h1, .brand {
     padding: 0 1.5rem;
 }
 
+/* ============================================================
+   HEADER & NAVBAR
+   ============================================================ */
 .site-header {
     border-bottom: 1px solid var(--line);
+    background-color: var(--paper);
+    position: sticky;
+    top: 0;
+    z-index: 50;
 }
 
 .site-header .container {
@@ -47,21 +58,34 @@ h1, .brand {
     font-weight: 700;
     color: var(--ink);
     text-decoration: none;
+    letter-spacing: -0.02em;
 }
 
 .site-header nav {
     display: flex;
-    gap: 2rem;
+    gap: 1.75rem;
 }
 
 .site-header nav a {
     color: var(--ink);
     text-decoration: none;
     font-size: 0.95rem;
+    font-weight: 500;
+    position: relative;
+    padding-bottom: 0.2rem;
+    transition: var(--transition);
 }
 
+.site-header nav a:hover {
+    color: var(--accent);
+}
+
+/* ============================================================
+   HERO / ABOUT SECTION (Tutorial 01)
+   ============================================================ */
 .hero {
     padding: 4.5rem 0 5rem;
+    border-bottom: 1px solid var(--line);
 }
 
 .hero-grid {
@@ -91,14 +115,16 @@ h1, .brand {
 }
 
 .hero-identity h1 {
-    font-size: clamp(3rem, 7vw, 5rem);
+    font-size: clamp(2.75rem, 6.5vw, 4.75rem);
     line-height: 0.95;
+    letter-spacing: -0.03em;
 }
 
 .bio {
     color: var(--text-muted);
     max-width: 480px;
     margin-bottom: 1.5rem;
+    font-size: 0.98rem;
 }
 
 .meta-list {
@@ -134,11 +160,12 @@ h1, .brand {
     background-color: var(--ink);
     border-radius: var(--radius);
     padding: 0.5rem 1.1rem;
-    transition: background-color 0.2s ease;
+    transition: var(--transition);
 }
 
 .social-link:hover {
     background-color: var(--accent);
+    transform: translateY(-2px);
 }
 
 .hero-photo {
@@ -169,13 +196,196 @@ h1, .brand {
     border: 3px solid var(--ink);
 }
 
+/* ============================================================
+   PROJECTS SECTION (Assignment 01)
+   ============================================================ */
+.projects-section {
+    padding: 5rem 0;
+}
+
+.section-header {
+    margin-bottom: 3rem;
+}
+
+.section-kicker {
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent-dark);
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.section-header h2 {
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+}
+
+.section-desc {
+    color: var(--text-muted);
+    max-width: 540px;
+    font-size: 0.95rem;
+}
+
+/* Responsive Grid Layout */
+.projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+    gap: 1.75rem;
+}
+
+/* Project Article Card */
+.project-card {
+    background-color: var(--paper-card);
+    border: 2px solid var(--ink);
+    border-radius: var(--radius);
+    padding: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: var(--transition);
+    position: relative;
+}
+
+/* Hover Effect */
+.project-card:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: var(--shadow-solid);
+    border-color: var(--ink);
+}
+
+.project-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.85rem;
+}
+
+.project-category {
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.project-year {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.project-title {
+    font-size: 1.35rem;
+    line-height: 1.25;
+    margin-bottom: 0.85rem;
+    color: var(--ink);
+}
+
+.project-summary {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.55;
+    margin-bottom: 1.5rem;
+    flex-grow: 1;
+}
+
+/* Tech Stack Tags */
+.project-tech {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 1.5rem;
+}
+
+.tag {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--ink);
+    background-color: var(--paper);
+    border: 1px solid var(--line);
+    padding: 0.2rem 0.55rem;
+    border-radius: var(--radius);
+}
+
+/* Action section */
+.project-footer {
+    border-top: 1px dashed var(--line);
+    padding-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+}
+
+/* Interactive Live Demo button */
+.project-btn-demo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: none;
+    color: var(--paper);
+    background-color: var(--accent);
+    border: 1.5px solid var(--ink);
+    border-radius: var(--radius);
+    padding: 0.35rem 0.8rem;
+    transition: var(--transition);
+}
+
+.project-btn-demo:hover {
+    background-color: var(--accent-dark);
+    color: var(--paper);
+    transform: translate(-2px, -2px);
+    box-shadow: 2px 2px 0px var(--ink);
+}
+
+/* Standard Link Teks (Repository) */
+.project-link {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--ink);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: color 0.15s ease;
+}
+
+.project-link:hover {
+    color: var(--accent);
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
 .site-footer {
-    padding: 1.5rem;
+    padding: 2.5rem 1.5rem;
     color: var(--text-muted);
     font-size: 0.85rem;
     border-top: 1px solid var(--line);
+    background-color: var(--paper);
 }
 
+/* ============================================================
+   MOBILE RESPONSIVENESS
+   ============================================================ */
+
+/* Tablet breakpoint adjustments */
+@media (max-width: 768px) {
+    .projects-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .hero {
+        padding: 3rem 0 3.5rem;
+    }
+}
+
+/* Mobile layout: switch hero to single column */
 @media (max-width: 600px) {
     .hero-grid {
         grid-template-columns: 1fr;
@@ -183,10 +393,15 @@ h1, .brand {
             "identity"
             "photo"
             "details";
+        gap: 2rem;
     }
 
     .hero-photo {
         max-width: 220px;
+    }
+
+    .meta-list {
+        gap: 1.5rem;
     }
 
     .social-links {
