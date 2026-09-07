@@ -45,6 +45,12 @@ h1, h2, h3, .brand {
     top: 0;
     z-index: 50;
 }
+/* section tracker */
+.site-header nav a.active {
+    color: var(--accent);
+    font-weight: 700;
+    border-bottom: 2px solid var(--accent);
+}
 
 .site-header .container {
     display: flex;
@@ -147,25 +153,91 @@ h1, h2, h3, .brand {
 
 .social-links {
     display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
+    gap: 2.0rem;
+    align-items: center;
+    position: relative;
 }
 
 .social-link {
-    display: inline-block;
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-decoration: none;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
     color: var(--paper);
     background-color: var(--ink);
-    border-radius: var(--radius);
-    padding: 0.5rem 1.1rem;
+    border: 2px solid var(--ink);
+    text-decoration: none;
     transition: var(--transition);
 }
 
+/* Icon SVG */
+.social-link .social-icon {
+    display: block;
+    transition: transform 0.2s ease;
+}
+
+/* Hover effect */
 .social-link:hover {
     background-color: var(--accent);
-    transform: translateY(-2px);
+    border-color: var(--accent);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 14px rgba(217, 93, 57, 0.35);
+}
+
+.social-link:hover .social-icon {
+    transform: scale(1.1);
+}
+
+/* Tooltip Pop-out Box */
+.social-link::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%) translateY(-6px);
+    background-color: var(--ink);
+    color: var(--paper);
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 0.25rem 0.6rem;
+    border-radius: var(--radius);
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+    box-shadow: 2px 2px 0px var(--accent);
+    z-index: 30;
+}
+
+/* Arrowhead Tooltip */
+.social-link::before {
+    content: "";
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%) translateY(-6px);
+    border-width: 0 5px 6px 5px;
+    border-style: solid;
+    border-color: transparent transparent var(--ink) transparent;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+    z-index: 31;
+}
+
+/* Show Tooltip When Hover */
+.social-link:hover::after,
+.social-link:hover::before {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
 }
 
 .hero-photo {
