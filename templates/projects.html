@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects - {{ name }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- Site Navigation -->
+    <header class="site-header">
+        <div class="container">
+            <a href="{% url 'main:show_main' %}" class="brand">{{ name }}'s Portofolio</a>
+            <nav>
+                <a href="{% url 'main:show_main' %}">Profile</a>
+                <a href="{% url 'main:show_experience' %}">Experience</a>
+                <a href="{% url 'main:show_projects' %}" class="active">Projects</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="projects-section" id="projects">
+            <div class="container">
+                <div class="section-header">
+                    <p class="section-kicker">Selected Works</p>
+                    <h2>Featured Projects</h2>
+                    <p class="section-desc">Koleksi proyek teknis di bidang computer vision, machine learning, dan web development yang saya kembangkan.</p>
+                </div>
+
+                <div class="projects-grid">
+                    {% for project in project_list %}
+                        <article class="project-card">
+                            <div class="project-header">
+                                <span class="project-category">{{ project.category }}</span>
+                                <span class="project-year">{{ project.year }}</span>
+                            </div>
+                            <h3 class="project-title">{{ project.title }}</h3>
+                            <p class="project-summary">
+                                {{ project.description }}
+                            </p>
+                            <div class="project-tech">
+                                {% for tech in project.tech_list %}
+                                    <span class="tag">{{ tech }}</span>
+                                {% endfor %}
+                            </div>
+                            <div class="project-footer">
+                                {% if project.demo_url %}
+                                    <a href="{{ project.demo_url }}" class="project-btn-demo" target="_blank" rel="noopener noreferrer">
+                                        Live Demo &nearr;
+                                    </a>
+                                {% endif %}
+                                {% if project.repo_url %}
+                                    <a href="{{ project.repo_url }}" class="project-link" target="_blank" rel="noopener noreferrer">
+                                        Repository &rarr;
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </article>
+                    {% empty %}
+                        <p class="empty-state">
+                            Belum ada proyek yang ditambahkan.
+                        </p>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Site Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <p>&copy; 2026 {{ name }}. Fakultas Ilmu Komputer, Universitas Indonesia.</p>
+        </div>
+    </footer>
+</body>
+</html>
