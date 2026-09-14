@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from main.models import Experience
+from main.models import Experience, Project
 
 
 class MainTest(TestCase):
@@ -20,6 +20,7 @@ class MainTest(TestCase):
         self.assertTemplateUsed(response, "index.html")
         self.assertNotContains(response, self.experience.title)
         self.assertContains(response, f'href="{reverse("main:show_experience")}"')
+        self.assertContains(response, f'href="{reverse("main:show_projects")}"')
 
     def test_nonexistent_page_returns_404(self):
         response = self.client.get("/halaman-yang-tidak-ada/")
@@ -41,6 +42,7 @@ class MainTest(TestCase):
         self.assertContains(response, "Part-Time")
         self.assertContains(response, "Sedang berlangsung")
         self.assertContains(response, f'href="{reverse("main:show_main")}"')
+        self.assertContains(response, f'href="{reverse("main:show_projects")}"')
 
     def test_empty_experience_page(self):
         Experience.objects.all().delete()
@@ -56,3 +58,50 @@ class MainTest(TestCase):
         self.assertFalse(self.experience.is_ongoing)
         self.assertContains(response, "Selesai")
         self.assertNotContains(response, "Sedang berlangsung")
+
+
+class ProjectTest(TestCase):
+    def setUp(self):
+        self.project = Project.objects.create(
+            title="Automated Manga Translator",
+            category="Computer Vision · NLP",
+            description="End-to-end pipeline untuk translasi manga otomatis.",
+            year=2026,
+            tech_stack="Python, YOLO, Gradio",
+            demo_url="https://huggingface.co/spaces/example/manga",
+            repo_url="https://github.com/example/manga-translator",
+        )
+
+    def test_project_model(self):
+        self.assertEqual(str(self.project), "Automated Manga Translator")
+        self.assertEqual(self.project.year, 2026)
+        self.assertEqual(self.project.tech_list, ["Python", "YOLO", "Gradio"])
+
+    def test_projects_url_and_template(self):
+        response = self.client.get(reverse("main:show_projects"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "projects.html")
+
+    def test_projects_page_displays_data(self):
+        response = self.client.get(reverse("main:show_projects"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.project.title)
+        self.assertContains(response, self.project.description)
+        self.assertContains(response, self.project.category)
+        self.assertContains(response, "Python")
+        self.assertContains(response, "YOLO")
+        self.assertContains(response, "Gradio")
+        self.assertContains(response, self.project.demo_url)
+        self.assertContains(response, self.project.repo_url)
+        self.assertContains(response, f'href="{reverse("main:show_main")}"')
+        self.assertContains(response, f'href="{reverse("main:show_experience")}"')
+
+    def test_empty_projects_page(self):
+        Project.objects.all().delete()
+        response = self.client.get(reverse("main:show_projects"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Belum ada proyek yang ditambahkan.")
+        self.assertNotContains(response, self.project.title)
