@@ -16,7 +16,7 @@
             <a href="{% url 'main:show_main' %}" class="brand">{{ name }}'s Portofolio</a>
             <nav>
                 <a href="{% url 'main:show_main' %}">Profile</a>
-                <a href="{% url 'main:show_experience' %}">Experience</a>
+                <a href="{% url 'main:show_experience' %}" class="active">Experience</a>
                 <a href="{% url 'main:show_projects' %}">Projects</a>
             </nav>
         </div>
@@ -61,34 +61,5 @@
             <p>&copy; 2026 {{ name }}. Fakultas Ilmu Komputer, Universitas Indonesia.</p>
         </div>
     </footer>
-
-    <!-- Script section tracker-->
-    <script>
-        const sections = document.querySelectorAll('section[id]');
-        const navLinks = document.querySelectorAll('.site-header nav a');
-
-        const observerOptions = {
-            root: null,
-            /* Offset area deteksi agar sinkron dengan tinggi header sticky */
-            rootMargin: '-20% 0px -50% 0px',
-            threshold: 0
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const activeId = entry.target.getAttribute('id');
-                    navLinks.forEach(link => {
-                        link.classList.toggle(
-                            'active', 
-                            link.getAttribute('href') === `#${activeId}`
-                        );
-                    });
-                }
-            });
-        }, observerOptions);
-
-        sections.forEach(section => observer.observe(section));
-    </script>
 </body>
 </html>
