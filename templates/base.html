@@ -1,0 +1,38 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    {% block meta %}
+    <title>{{ name }}'s Portofolio</title>
+    {% endblock meta %}
+</head>
+<body>
+    <!-- Site Navigation -->
+    <header class="site-header">
+        <div class="container">
+            <a href="{% url 'main:show_main' %}" class="brand">{{ name }}'s Portofolio</a>
+            <nav>
+                <a href="{% url 'main:show_main' %}" class="{% block nav_profile %}{% endblock %}">Profile</a>
+                <a href="{% url 'main:show_experience' %}" class="{% block nav_experience %}{% endblock %}">Experience</a>
+                <a href="{% url 'main:show_projects' %}" class="{% block nav_projects %}{% endblock %}">Projects</a>
+            </nav>
+        </div>
+    </header>
+
+    {% block content %}
+    {% endblock content %}
+
+    <!-- Site Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <p>&copy; 2026 {{ name }}. Fakultas Ilmu Komputer, Universitas Indonesia.</p>
+        </div>
+    </footer>
+</body>
+</html>

@@ -104,4 +104,100 @@ class ProjectTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Belum ada proyek yang ditambahkan.")
-        self.assertNotContains(response, self.project.title)
+        self.assertNotContains(response, self.project.title)
+
+    def test_create_project_get(self):
+        response = self.client.get(reverse("main:create_project"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "projects_form.html")
+        self.assertTemplateUsed(response, "base.html")
+        self.assertContains(response, "Add New Project")
+
+    def test_create_project_post_valid(self):
+        data = {
+            "title": "New AI Tool",
+            "category": "Artificial Intelligence",
+            "description": "Sebuah tool AI baru.",
+            "year": 2026,
+            "tech_stack": "PyTorch, FastAPI",
+            "demo_url": "https://example.com",
+            "repo_url": "https://github.com/example/tool",
+        }
+        response = self.client.post(reverse("main:create_project"), data)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("main:show_projects"))
+        self.assertTrue(Project.objects.filter(title="New AI Tool").exists())
+
+    def test_create_project_post_invalid(self):
+        initial_count = Project.objects.count()
+        response = self.client.post(reverse("main:create_project"), {"title": ""})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Project.objects.count(), initial_count)
+        self.assertFormError(response.context["form"], "title", "This field is required.")
+
+    def test_delete_project_post(self):
+        project_id = self.project.id
+        response = self.client.post(
+            reverse("main:delete_project", kwargs={"project_id": project_id})
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("main:show_projects"))
+        self.assertFalse(Project.objects.filter(id=project_id).exists())
+
+    def test_delete_project_get_redirects_without_deleting(self):
+        response = self.client.get(
+            reverse("main:delete_project", kwargs={"project_id": self.project.id})
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Project.objects.filter(id=self.project.id).exists())
+
+    def test_delete_nonexistent_project_returns_404(self):
+        import uuid
+        random_uuid = uuid.uuid4()
+        response = self.client.post(
+            reverse("main:delete_project", kwargs={"project_id": random_uuid})
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_projects_search_matching(self):
+        response = self.client.get(reverse("main:show_projects") + "?title=Manga")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.project.title)
+
+    def test_projects_search_non_matching(self):
+        response = self.client.get(reverse("main:show_projects") + "?title=NonExistentProject123")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, self.project.title)
+        self.assertContains(response, "Tidak ada proyek dengan nama tersebut.")
+
+    def test_get_projects_json_endpoint(self):
+        import json
+
+        response = self.client.get(reverse("main:get_projects_json"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["content-type"], "application/json")
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertIsInstance(data, list)
+        self.assertTrue(any(item["fields"]["title"] == "Automated Manga Translator" for item in data))
+
+    def test_get_projects_json_filter(self):
+        import json
+
+        response = self.client.get(reverse("main:get_projects_json") + "?title=Manga")
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["fields"]["title"], self.project.title)
+
+        response_empty = self.client.get(reverse("main:get_projects_json") + "?title=NotExisting")
+        data_empty = json.loads(response_empty.content.decode("utf-8"))
+        self.assertEqual(len(data_empty), 0)
+
