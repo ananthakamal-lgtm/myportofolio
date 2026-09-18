@@ -25,6 +25,16 @@
         </div>
     </header>
 
+    {% if messages %}
+        <div class="container messages-container">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'info' }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
     {% block content %}
     {% endblock content %}
 

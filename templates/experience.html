@@ -10,15 +10,37 @@
     <main>
         <section class="experience-section" id="experience">
             <div class="container">
-                <p class="section-kicker">Perjalanan saya sejauh ini</p>
-                <h1>Experience</h1>
+                <div class="project-header">
+                    <div>
+                        <p class="section-kicker">Perjalanan saya sejauh ini</p>
+                        <h1>Experience</h1>
+                    </div>
+                    <a href="{% url 'main:create_experience' %}" class="button project-add-button">
+                        <span aria-hidden="true">+</span> Tambah Pengalaman
+                    </a>
+                </div>
+
+                <form method="get" action="{% url 'main:show_experience' %}" class="project-search">
+                    <input type="search"
+                           name="title"
+                           value="{{ title_query }}"
+                           placeholder="Cari berdasarkan nama atau posisi pengalaman"
+                           class="project-search__input"
+                           aria-label="Cari berdasarkan nama atau posisi pengalaman">
+                    <button type="submit" class="button">Cari</button>
+                </form>
 
                 <div class="experience-grid">
                     {% for experience in experience_list %}
                         <article class="experience-card">
-                            <span class="experience-category">
-                                {{ experience.get_category_display }}
-                            </span>
+                            <div class="experience-card__header">
+                                <span class="experience-category">
+                                    {{ experience.get_category_display }}
+                                </span>
+                                {% if experience.thumbnail %}
+                                    <img src="{{ experience.thumbnail }}" alt="Logo {{ experience.title }}" class="experience-thumbnail" loading="lazy">
+                                {% endif %}
+                            </div>
                             <h2>{{ experience.title }}</h2>
                             <p class="experience-description">
                                 {{ experience.description }}
@@ -29,11 +51,21 @@
                             {% else %}
                                 <p class="experience-status">Selesai</p>
                             {% endif %}
+
+                            <div class="project-footer" style="margin-top: 1rem;">
+                                {% include "components/experience_delete_modal.html" with experience=experience %}
+                            </div>
                         </article>
                     {% empty %}
-                        <p class="empty-state">
-                            Belum ada pengalaman yang ditambahkan.
-                        </p>
+                        {% if title_query %}
+                            <p class="empty-state">
+                                Tidak ada pengalaman dengan kata kunci tersebut.
+                            </p>
+                        {% else %}
+                            <p class="empty-state">
+                                Belum ada pengalaman yang ditambahkan.
+                            </p>
+                        {% endif %}
                     {% endfor %}
                 </div>
             </div>

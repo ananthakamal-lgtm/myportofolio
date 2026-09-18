@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block meta %}
+    <title>{{ page_title|default:"Add New Experience" }} - {{ name }}</title>
+{% endblock meta %}
+
+{% block nav_experience %}active{% endblock nav_experience %}
+
+{% block content %}
+    <main>
+        <section class="experience-section">
+            <div class="container">
+                <h1>{{ page_title|default:"Add New Experience" }}</h1>
+
+                <form method="post" class="project-form">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="form-group">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% for error in field.errors %}
+                                <p class="form-error">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+
+                    <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+                        <button type="submit" class="button">{{ button_text|default:"Tambah Pengalaman" }}</button>
+                        <a href="{% url 'main:show_experience' %}" class="button button-secondary">Batal</a>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+{% endblock content %}
+
