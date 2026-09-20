@@ -93,4 +93,58 @@ Pengerjaan Individual Assignment 2 ini memanfaatkan generative AI sebagai asiste
 - **Keterbatasan AI & Validasi Mandiri oleh Mahasiswa:**
   1. **Validasi Skema & Konsistensi Identitas:** Saya memeriksa dan memastikan setiap commit dijalankan dengan identitas lokal saya (`nantha kml <anantha.kamal@ui.ac.id>`) dan di-*push* secara mandiri ke repositori pribadi.
   2. **Refaktor Kode HTML:** AI awalnya menyarankan mempertahankan kartu statis lama di `index.html`. Saya secara proaktif merefaktor `index.html` agar tidak ada lagi data proyek yang di-*hardcode*, melainkan dialihkan secara elegan menggunakan tautan CTA menuju rute dinamis `/projects/`.
-  3. **Verifikasi Test Suite:** Menjalankan `python manage.py test` di environment virtual lokal dan memverifikasi seluruh 10 test case lulus dengan status `OK` tanpa galat.
+  3. **Verifikasi Test Suite:** Menjalankan `python manage.py test` di environment virtual lokal dan memverifikasi seluruh 10 test case lulus dengan status `OK` tanpa galat.
+
+---
+
+### Tugas 3
+
+1. **Alasan Penggunaan ModelForm pada Django Dibandingkan Membuat Form HTML Manual & Urgensi `{% csrf_token %}`:**
+   - **Keunggulan dan Alasan Menggunakan ModelForm:**
+     - **Prinsip DRY (*Don't Repeat Yourself*) & Integritas Skema:** Ketika kita telah mendefinisikan skema data pada `models.py` (seperti panjang maksimum `max_length`, tipe data `CharField`, `TextField`, `URLField`, dan pilihan opsi `choices`), membuat form HTML secara manual mengharuskan kita menduplikasi aturan-aturan tersebut di berkas template. Dengan `ModelForm`, Django secara otomatis memetakan setiap field model menjadi elemen input form yang sesuai lengkap dengan tipe data dan batasannya.
+     - **Validasi Otomatis dan Sanitasi Data (*Form Cleaning*):** Memvalidasi form HTML manual di backend mengharuskan penulisan logika pengecekan satu per satu pada `request.POST`. Sebaliknya, `ModelForm` menyediakan metode bawaan `form.is_valid()` yang otomatis memvalidasi apakah tipe data sesuai, field wajib telah diisi, dan URL valid. Jika terdapat galat, pesan kesalahan dikumpulkan secara terstruktur dalam `form.errors` dan data yang telah bersih (*sanitized*) tersedia aman di `form.cleaned_data`.
+     - **Kemudahan Persistensi Data (Direct ORM Saving):** Pada form manual, pengembang harus mengekstrak setiap nilai dari `request.POST` lalu membuat atau memperbarui objek ORM secara manual (`obj.title = request.POST['title']`, dst.). Dengan `ModelForm`, pemanggilan `form.save()` langsung mengeksekusi operasi `INSERT` atau `UPDATE` ke basis data secara atomik.
+     - **Dukungan Alami untuk Operasi Edit/Update (*Instance Binding*):** `ModelForm` dapat menerima parameter `instance=obj`. Seluruh elemen input pada form akan secara otomatis terisi (*pre-populated*) dengan nilai data objek yang sedang diedit tanpa perlu menuliskan atribut `value="{{ ... }}"` manual di markup HTML.
+     - **Aksesibilitas dan Keamanan Standar:** `ModelForm` menghasilkan atribut HTML yang terstandarisasi (`id`, `name`, `for` pada tag `<label>`), yang mempermudah navigasi pembaca layar (*screen reader*) serta mengurangi risiko celah keamanan akibat kelalaian penulisan markup manual.
+   - **Urgensi Menambahkan `{% csrf_token %}` pada Form:**
+     - **Mitigasi Serangan CSRF (*Cross-Site Request Forgery*):** CSRF adalah serangan di mana situs berbahaya pihak ketiga memanfaatkan status autentikasi aktif peramban pengguna (seperti sesi login atau cookie) untuk mengirimkan permintaan HTTP berbahaya tanpa disadari (misalnya melakukan perubahan data atau penghapusan data portofolio).
+     - **Mekanisme Perlindungan Django:** Tag `{% csrf_token %}` menghasilkan elemen input tersembunyi (*hidden input field*) yang berisi token kriptografis acak dan unik yang terikat pada sesi pengguna saat ini.
+     - **Verifikasi Middleware (`CsrfViewMiddleware`):** Ketika form dikirimkan melalui metode POST, middleware proteksi CSRF Django memverifikasi kecocokan antara token yang dikirimkan dengan token sesi. Apabila token tidak cocok, kedaluwarsa, atau tidak disertakan, Django secara otomatis menolak permintaan dan mengembalikan kode status HTTP `403 Forbidden`. Hal ini menjamin bahwa seluruh mutasi data hanya berasal dari form sah yang dirender oleh aplikasi kita sendiri.
+
+2. **Alasan JSON Lebih Disukai Dibandingkan XML dalam Pengembangan Web Modern:**
+   - **Sintaksis Ringkas dan Hemat Bandwidth (*Lightweight & Compact*):** XML memiliki *overhead* karakter yang besar karena mengharuskan setiap data dibungkus oleh tag pembuka dan penutup yang redundan (misalnya `<project><title>Nama Proyek</title></project>`), sedangkan JSON menggunakan notasi pasangan kunci-nilai (*key-value*) yang padat (`{"title": "Nama Proyek"}`). Karakter yang lebih sedikit menghasilkan ukuran berkas yang jauh lebih kecil, mempercepat transmisi data melalui jaringan, dan menghemat konsumsi bandwidth, khususnya pada perangkat seluler.
+   - **Parsing Alami (*Native Parsing*) di Lingkungan JavaScript:** JSON (*JavaScript Object Notation*) merupakan bagian intrinsik dari bahasa pemrograman JavaScript yang mendominasi sisi peramban web. Browser modern dapat mem-parsing teks JSON menjadi objek JavaScript secara instan menggunakan metode bawaan `JSON.parse()` yang dieksekusi langsung pada level mesin runtime (misalnya V8) dengan performa sangat tinggi. Sebaliknya, XML memerlukan *parser* dokumen DOM terpisah (`DOMParser` atau query XPath) yang jauh lebih kompleks, memakan memori, dan lambat.
+   - **Dukungan Tipe Data Primitif:** JSON secara eksplisit mendukung dan membedakan tipe data bawaan seperti string, number, boolean, array, dan object (null). Di sisi lain, seluruh data di dalam elemen XML secara inheren diperlakukan sebagai teks (*string*), sehingga aplikasi klien harus melakukan konversi tipe data (*type casting*) secara manual.
+   - **Standar *De Facto* Arsitektur RESTful API & Frontend Framework:** Seluruh ekosistem web modern—mulai dari framework frontend (React, Vue, Next.js), arsitektur microservices, hingga library HTTP—dibangun dengan pendekatan *first-class citizen* terhadap JSON. Kemudahan pembacaan oleh manusia (*human-readable*) sekaligus kemudahan manipulasi di sisi backend (seperti modul `json` atau `django.core.serializers` pada Python) menjadikan JSON pilihan paling efisien dan ergonomis.
+
+3. **Alur View Mengembalikan Data Portofolio dalam Bentuk JSON & Alasan Perlunya Proses Serialisasi Model:**
+   - **Alur yang Terjadi pada Fungsi View:**
+     1. **Penerimaan Permintaan HTTP:** Klien (browser atau API consumer) mengirimkan permintaan HTTP GET ke endpoint rute, misalnya `/api/experience/` atau `/api/projects/`.
+     2. **Pengambilan Data melalui ORM:** Fungsi view mengeksekusi query database menggunakan Django ORM, misalnya `experiences = Experience.objects.all()`. Database mengembalikan data mentah yang oleh ORM dikonstruksi menjadi kumpulan objek Python dalam memori berupa `QuerySet`.
+     3. **Proses Serialisasi (*Serialization*):** Fungsi view memanggil modul serializer bawaan Django: `experiences_json = serializers.serialize("json", experiences)`. Serializer mengiterasi setiap objek model, mengekstrak informasi model, primary key (`pk`), serta kamus atribut `fields`, lalu mengonversinya menjadi string berformat JSON yang valid.
+     4. **Pengemasan dan Pengiriman Respons:** String JSON dibungkus ke dalam objek `HttpResponse(experiences_json, content_type="application/json")` dengan kode status HTTP `200 OK`. Header `Content-Type` memberi tahu klien bahwa payload yang dikirimkan adalah dokumen JSON yang siap di-parse.
+   - **Alasan Perlunya Proses Serialisasi pada Model Django:**
+     - **Inkompatibilitas Format Objek In-Memory Python dengan Protokol HTTP:** Objek model Django (`Experience` atau `Project`) adalah objek kelas Python yang kaya (*complex Python objects*). Objek tersebut memiliki referensi memori internal, metode-metode bisnis, status koneksi database, dan metadata model. Protokol HTTP hanya mampu mentransmisikan data dalam format teks terstruktur berbasis string atau aliran biner (*byte stream*). Kita tidak bisa mengirimkan objek Python mentah melalui kabel jaringan.
+     - **Interoperabilitas dan Agnostisisme Platform:** Data portofolio perlu diakses oleh berbagai klien yang mungkin tidak ditulis dalam Python (misalnya JavaScript di browser, Swift di iOS, atau Kotlin di Android). Serialisasi mengubah struktur data internal menjadi format standar terbuka (JSON) yang dapat dipahami dan didekodekan oleh bahasa pemrograman apa pun secara universal.
+     - **Format Khusus dan Keamanan Data:** Serialisasi menangani konversi tipe data yang tidak ada secara langsung di JSON murni (seperti `UUID` dan objek waktu `datetime`) menjadi representasi string terstandarisasi (seperti format tanggal ISO 8601). Selain itu, serialisasi memungkinkan kita mengontrol dengan tepat field mana saja yang boleh diekspos ke publik dan menyembunyikan data internal yang sensitif.
+
+---
+
+### AI Disclosure (Tugas 3)
+
+Pengerjaan Individual Assignment 3 ini memanfaatkan generative AI sebagai asisten pemrograman berpasangan (*pair programming*) dan validasi arsitektur perangkat lunak dengan rincian transparansi sebagai berikut:
+- **Tools yang Digunakan:** Gemini (Antigravity Assistant).
+- **Strategi Prompting:**
+  1. **Pendekatan Modular & Berbasis Rencana (*Planning-First Approach*):** Menyusun rencana implementasi komprehensif (`implementation_plan.md`) terlebih dahulu sebelum menulis kode untuk memetakan kebutuhan ModelForm, operasi CRUD, endpoint JSON, serta refactoring template.
+  2. **Konsistensi Desain & Kontinuitas Tugas:** Meminta asisten mempertahankan estetika Neo-Brutalist / Editorial dari Tugas 1 dan 2, menggunakan variabel CSS yang ada (`--paper`, `--ink`, `--accent`, `--line`), serta memastikan seluruh form dan modal terintegrasi secara mulus.
+  3. **Pengujian Menyeluruh Berbasis TDD/Automation:** Meminta penyusunan unit test komprehensif pada `main/tests.py` untuk memverifikasi setiap endpoint view (GET, POST valid, POST invalid, 404 pada invalid UUID) dan data delivery JSON.
+- **Aspek Spesifik yang Dibantu:**
+  1. **Perancangan ModelForm:** Merancang `ExperienceForm` pada `main/forms.py` dengan 4 field non-id dan non-timestamp (`title`, `category`, `description`, `thumbnail`), serta menyesuaikan widget dan label berbahasa Indonesia.
+  2. **Implementasi CRUD & Deserialisasi JSON:** Membangun fungsi view `create_experience`, `update_experience`, `delete_experience`, `get_experience_json`, serta pola deserialisasi pada `show_experience`. Sebagai nilai tambah, ditambahkan pula fitur `update_project` untuk entitas Proyek.
+  3. **Antarmuka & Komponen Popover Modal:** Membuat komponen popover konfirmasi hapus `experience_delete_modal.html` dan template form terpadu `experience_form.html` yang meng-extend `base.html`.
+  4. **Penyusunan Test Suite:** Menulis skenario pengujian otomatis komprehensif sehingga total unit tests meningkat menjadi 38 test case yang seluruhnya berstatus lulus (`OK`).
+  5. **Sintesis Pertanyaan Reflektif:** Berdiskusi dan menyusun jawaban mendalam serta terstruktur untuk ketiga pertanyaan reflektif Tugas 3.
+- **Keterbatasan AI & Validasi Mandiri oleh Mahasiswa:**
+  1. **Pengecekan Persyaratan Khusus Tugas:** Mahasiswa memeriksa dan memastikan secara manual bahwa field timestamp (`started_at`, `ended_at`) dan `id` benar-benar dikecualikan dari `ExperienceForm` sesuai ketentuan instruksi tugas.
+  2. **Pembersihan Struktur Template:** Mahasiswa memvalidasi bahwa tidak ada duplikasi tag navigasi atau markup ganda pada saat meng-extend `base.html`.
+  3. **Verifikasi Manual dan Kontrol Git:** Mahasiswa menguji fungsionalitas form secara langsung pada antarmuka browser di `http://127.0.0.1:8000/` dan mengontrol penuh proses git agar kode direview terlebih dahulu sebelum dilakukan commit dan push.

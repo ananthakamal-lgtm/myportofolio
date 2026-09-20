@@ -1,12 +1,15 @@
-<p class="experience-status">
+<div class="project-actions">
+    <a href="{% url 'main:update_project' project.id %}" class="button button-secondary button-sm" aria-label="Edit {{ project.title }}">
+        Edit
+    </a>
     <button type="button"
-            class="button button-danger"
+            class="button button-danger button-sm"
             popovertarget="delete-project-{{ project.id }}"
             aria-label="Hapus {{ project.title }}"
             title="Hapus proyek">
-        Hapus Proyek
+        Hapus
     </button>
-</p>
+</div>
 <div id="delete-project-{{ project.id }}"
      class="project-delete-modal"
      popover="auto"
