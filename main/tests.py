@@ -66,6 +66,11 @@ class MainTest(TestCase):
 
 class ExperienceCRUDTest(TestCase):
     def setUp(self):
+        self.superuser = User.objects.create_superuser(
+            username="admin_exp",
+            password="AdminPassword123!",
+            email="admin_exp@example.com",
+        )
         self.experience = Experience.objects.create(
             title="Software Engineering Intern",
             category="internship",
@@ -90,6 +95,7 @@ class ExperienceCRUDTest(TestCase):
         self.assertIn("description", form.errors)
 
     def test_create_experience_get(self):
+        self.client.force_login(self.superuser)
         response = self.client.get(reverse("main:create_experience"))
 
         self.assertEqual(response.status_code, 200)
@@ -98,6 +104,7 @@ class ExperienceCRUDTest(TestCase):
         self.assertContains(response, "Add New Experience")
 
     def test_create_experience_post_valid(self):
+        self.client.force_login(self.superuser)
         data = {
             "title": "Machine Learning Research Intern",
             "category": "research",
@@ -111,6 +118,7 @@ class ExperienceCRUDTest(TestCase):
         self.assertTrue(Experience.objects.filter(title="Machine Learning Research Intern").exists())
 
     def test_create_experience_post_invalid(self):
+        self.client.force_login(self.superuser)
         initial_count = Experience.objects.count()
         response = self.client.post(reverse("main:create_experience"), {"title": ""})
 
@@ -119,6 +127,7 @@ class ExperienceCRUDTest(TestCase):
         self.assertFormError(response.context["form"], "title", "This field is required.")
 
     def test_update_experience_get(self):
+        self.client.force_login(self.superuser)
         response = self.client.get(
             reverse("main:update_experience", kwargs={"experience_id": self.experience.id})
         )
@@ -129,6 +138,7 @@ class ExperienceCRUDTest(TestCase):
         self.assertContains(response, self.experience.title)
 
     def test_update_experience_post_valid(self):
+        self.client.force_login(self.superuser)
         data = {
             "title": "Senior Software Engineering Intern",
             "category": "internship",
@@ -147,12 +157,14 @@ class ExperienceCRUDTest(TestCase):
         self.assertEqual(self.experience.description, "Memimpin inisiatif optimasi query database dan caching.")
 
     def test_update_experience_nonexistent_returns_404(self):
+        self.client.force_login(self.superuser)
         response = self.client.get(
             reverse("main:update_experience", kwargs={"experience_id": uuid.uuid4()})
         )
         self.assertEqual(response.status_code, 404)
 
     def test_delete_experience_post(self):
+        self.client.force_login(self.superuser)
         exp_id = self.experience.id
         response = self.client.post(
             reverse("main:delete_experience", kwargs={"experience_id": exp_id})
@@ -163,6 +175,7 @@ class ExperienceCRUDTest(TestCase):
         self.assertFalse(Experience.objects.filter(id=exp_id).exists())
 
     def test_delete_experience_get_redirects_without_deleting(self):
+        self.client.force_login(self.superuser)
         response = self.client.get(
             reverse("main:delete_experience", kwargs={"experience_id": self.experience.id})
         )
@@ -171,6 +184,7 @@ class ExperienceCRUDTest(TestCase):
         self.assertTrue(Experience.objects.filter(id=self.experience.id).exists())
 
     def test_delete_experience_nonexistent_returns_404(self):
+        self.client.force_login(self.superuser)
         response = self.client.post(
             reverse("main:delete_experience", kwargs={"experience_id": uuid.uuid4()})
         )
@@ -586,3 +600,240 @@ class AuthorizationAndStarTest(TestCase):
         data = json.loads(response.content.decode("utf-8"))
         target = next(item for item in data if item["pk"] == str(self.project.id))
         self.assertEqual(target["fields"]["starred_by"], [[self.regular_user.username]])
+
+class ExperienceAuthorizationAndStarTest(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import Group
+        self.editor_group, _ = Group.objects.get_or_create(name="Editor")
+
+        self.regular_user = User.objects.create_user(
+            username="regular_exp_user",
+            password="RegularPassword123!",
+        )
+
+        self.editor_user = User.objects.create_user(
+            username="editor_exp_user",
+            password="EditorPassword123!",
+        )
+        self.editor_user.groups.add(self.editor_group)
+
+        self.superuser = User.objects.create_superuser(
+            username="superuser_exp_user",
+            password="SuperPassword123!",
+            email="superuser_exp@example.com",
+        )
+
+        self.experience = Experience.objects.create(
+            title="Backend Engineer Intern",
+            category="internship",
+            description="Mengembangkan microservices.",
+        )
+
+        self.project = Project.objects.create(
+            title="Search Engine",
+            category="Web Dev",
+            description="Search engine.",
+            year=2026,
+            tech_stack="Python, Elasticsearch",
+        )
+
+    def test_guest_redirected_to_login(self):
+        # Create
+        res_create_get = self.client.get(reverse("main:create_experience"))
+        self.assertEqual(res_create_get.status_code, 302)
+        self.assertIn("/login/", res_create_get.url)
+
+        res_create_post = self.client.post(reverse("main:create_experience"), {"title": "X"})
+        self.assertEqual(res_create_post.status_code, 302)
+        self.assertIn("/login/", res_create_post.url)
+
+        # Update
+        res_update_get = self.client.get(reverse("main:update_experience", kwargs={"experience_id": self.experience.id}))
+        self.assertEqual(res_update_get.status_code, 302)
+        self.assertIn("/login/", res_update_get.url)
+
+        res_update_post = self.client.post(reverse("main:update_experience", kwargs={"experience_id": self.experience.id}), {"title": "X"})
+        self.assertEqual(res_update_post.status_code, 302)
+        self.assertIn("/login/", res_update_post.url)
+
+        # Delete
+        res_del = self.client.post(reverse("main:delete_experience", kwargs={"experience_id": self.experience.id}))
+        self.assertEqual(res_del.status_code, 302)
+        self.assertIn("/login/", res_del.url)
+
+        # Star
+        res_star = self.client.post(reverse("main:toggle_experience_star", kwargs={"experience_id": self.experience.id}))
+        self.assertEqual(res_star.status_code, 302)
+        self.assertIn("/login/", res_star.url)
+        self.assertEqual(self.experience.starred_by.count(), 0)
+
+    def test_regular_user_permissions(self):
+        self.client.force_login(self.regular_user)
+
+        # Create -> 403 Forbidden
+        res_create_get = self.client.get(reverse("main:create_experience"))
+        self.assertEqual(res_create_get.status_code, 403)
+
+        res_create_post = self.client.post(reverse("main:create_experience"), {
+            "title": "Unauthorized Add",
+            "category": "internship",
+            "description": "Not allowed",
+        })
+        self.assertEqual(res_create_post.status_code, 403)
+
+        # Update -> 403 Forbidden
+        res_update_get = self.client.get(reverse("main:update_experience", kwargs={"experience_id": self.experience.id}))
+        self.assertEqual(res_update_get.status_code, 403)
+
+        res_update_post = self.client.post(reverse("main:update_experience", kwargs={"experience_id": self.experience.id}), {
+            "title": "Unauthorized Edit",
+            "category": "internship",
+            "description": "Not allowed",
+        })
+        self.assertEqual(res_update_post.status_code, 403)
+
+        # Delete -> 403 Forbidden
+        res_del = self.client.post(reverse("main:delete_experience", kwargs={"experience_id": self.experience.id}))
+        self.assertEqual(res_del.status_code, 403)
+
+        # Star / Unstar -> Allowed!
+        star_url = reverse("main:toggle_experience_star", kwargs={"experience_id": self.experience.id})
+        res_star1 = self.client.post(star_url)
+        self.assertEqual(res_star1.status_code, 302)
+        self.assertIn(self.regular_user, self.experience.starred_by.all())
+        self.assertEqual(self.experience.starred_by.count(), 1)
+
+        res_star2 = self.client.post(star_url)
+        self.assertEqual(res_star2.status_code, 302)
+        self.assertNotIn(self.regular_user, self.experience.starred_by.all())
+        self.assertEqual(self.experience.starred_by.count(), 0)
+
+    def test_editor_permissions(self):
+        self.client.force_login(self.editor_user)
+
+        # Cannot Create -> 403 Forbidden
+        res_create = self.client.post(reverse("main:create_experience"), {
+            "title": "Editor Should Not Create",
+            "category": "internship",
+            "description": "Not allowed",
+        })
+        self.assertEqual(res_create.status_code, 403)
+
+        # Cannot Delete -> 403 Forbidden
+        res_del = self.client.post(reverse("main:delete_experience", kwargs={"experience_id": self.experience.id}))
+        self.assertEqual(res_del.status_code, 403)
+        self.assertTrue(Experience.objects.filter(id=self.experience.id).exists())
+
+        # Can Update Experience -> Allowed!
+        res_update_get = self.client.get(reverse("main:update_experience", kwargs={"experience_id": self.experience.id}))
+        self.assertEqual(res_update_get.status_code, 200)
+
+        res_update_post = self.client.post(reverse("main:update_experience", kwargs={"experience_id": self.experience.id}), {
+            "title": "Updated by Editor",
+            "category": "internship",
+            "description": "Deskripsi diperbarui oleh editor.",
+        })
+        self.assertEqual(res_update_post.status_code, 302)
+        self.experience.refresh_from_db()
+        self.assertEqual(self.experience.title, "Updated by Editor")
+
+        # Can Update Project -> Allowed!
+        res_proj_update = self.client.post(reverse("main:update_project", kwargs={"project_id": self.project.id}), {
+            "title": "Updated Project by Editor",
+            "category": "Web Dev",
+            "description": "Updated desc.",
+            "year": 2026,
+            "tech_stack": "Python",
+        })
+        self.assertEqual(res_proj_update.status_code, 302)
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.title, "Updated Project by Editor")
+
+        # Cannot Create Project -> 403
+        res_proj_create = self.client.post(reverse("main:create_project"), {"title": "X"})
+        self.assertEqual(res_proj_create.status_code, 403)
+
+        # Cannot Delete Project -> 403
+        res_proj_del = self.client.post(reverse("main:delete_project", kwargs={"project_id": self.project.id}))
+        self.assertEqual(res_proj_del.status_code, 403)
+
+        # Can Star Experience -> Allowed!
+        star_url = reverse("main:toggle_experience_star", kwargs={"experience_id": self.experience.id})
+        res_star = self.client.post(star_url)
+        self.assertEqual(res_star.status_code, 302)
+        self.assertEqual(self.experience.starred_by.count(), 1)
+
+    def test_superuser_full_permissions(self):
+        self.client.force_login(self.superuser)
+
+        # Can Create
+        res_create = self.client.post(reverse("main:create_experience"), {
+            "title": "Superuser Experience",
+            "category": "full-time",
+            "description": "Dibuat oleh admin.",
+        })
+        self.assertEqual(res_create.status_code, 302)
+        new_exp = Experience.objects.get(title="Superuser Experience")
+
+        # Can Update
+        res_update = self.client.post(reverse("main:update_experience", kwargs={"experience_id": new_exp.id}), {
+            "title": "Superuser Experience Edited",
+            "category": "full-time",
+            "description": "Diperbarui oleh admin.",
+        })
+        self.assertEqual(res_update.status_code, 302)
+        new_exp.refresh_from_db()
+        self.assertEqual(new_exp.title, "Superuser Experience Edited")
+
+        # Can Delete
+        res_del = self.client.post(reverse("main:delete_experience", kwargs={"experience_id": new_exp.id}))
+        self.assertEqual(res_del.status_code, 302)
+        self.assertFalse(Experience.objects.filter(id=new_exp.id).exists())
+
+    def test_experience_template_action_buttons_visibility(self):
+        # Guest
+        res_guest = self.client.get(reverse("main:show_experience"))
+        self.assertEqual(res_guest.status_code, 200)
+        self.assertNotContains(res_guest, "Tambah Pengalaman")
+        self.assertNotContains(res_guest, reverse("main:update_experience", kwargs={"experience_id": self.experience.id}))
+        self.assertNotContains(res_guest, f"delete-experience-{self.experience.id}")
+        self.assertContains(res_guest, "button-star")
+
+        # Regular user
+        self.client.force_login(self.regular_user)
+        res_regular = self.client.get(reverse("main:show_experience"))
+        self.assertEqual(res_regular.status_code, 200)
+        self.assertNotContains(res_regular, "Tambah Pengalaman")
+        self.assertNotContains(res_regular, reverse("main:update_experience", kwargs={"experience_id": self.experience.id}))
+        self.assertNotContains(res_regular, f"delete-experience-{self.experience.id}")
+        self.assertContains(res_regular, "button-star")
+
+        # Editor
+        self.client.force_login(self.editor_user)
+        res_editor = self.client.get(reverse("main:show_experience"))
+        self.assertEqual(res_editor.status_code, 200)
+        self.assertNotContains(res_editor, "Tambah Pengalaman")
+        self.assertContains(res_editor, reverse("main:update_experience", kwargs={"experience_id": self.experience.id}))
+        self.assertNotContains(res_editor, f"delete-experience-{self.experience.id}")
+        self.assertContains(res_editor, "button-star")
+
+        # Superuser
+        self.client.force_login(self.superuser)
+        res_super = self.client.get(reverse("main:show_experience"))
+        self.assertEqual(res_super.status_code, 200)
+        self.assertContains(res_super, "Tambah Pengalaman")
+        self.assertContains(res_super, reverse("main:update_experience", kwargs={"experience_id": self.experience.id}))
+        self.assertContains(res_super, f"delete-experience-{self.experience.id}")
+        self.assertContains(res_super, "button-star")
+
+    def test_get_experience_json_security(self):
+        res = self.client.get(reverse("main:get_experience_json"))
+        self.assertEqual(res.status_code, 200)
+        data = json.loads(res.content.decode("utf-8"))
+        self.assertIsInstance(data, list)
+        self.assertTrue(len(data) > 0)
+        for item in data:
+            self.assertIn("title", item["fields"])
+            self.assertIn("category", item["fields"])
+            self.assertIn("description", item["fields"])
+            self.assertNotIn("password", item["fields"])
