@@ -148,3 +148,64 @@ Pengerjaan Individual Assignment 3 ini memanfaatkan generative AI sebagai asiste
   1. **Pengecekan Persyaratan Khusus Tugas:** Mahasiswa memeriksa dan memastikan secara manual bahwa field timestamp (`started_at`, `ended_at`) dan `id` benar-benar dikecualikan dari `ExperienceForm` sesuai ketentuan instruksi tugas.
   2. **Pembersihan Struktur Template:** Mahasiswa memvalidasi bahwa tidak ada duplikasi tag navigasi atau markup ganda pada saat meng-extend `base.html`.
   3. **Verifikasi Manual dan Kontrol Git:** Mahasiswa menguji fungsionalitas form secara langsung pada antarmuka browser di `http://127.0.0.1:8000/` dan mengontrol penuh proses git agar kode direview terlebih dahulu sebelum dilakukan commit dan push.
+---
+
+### Tugas 4: Implementasi Autentikasi, Manajemen Hak Akses (Otorisasi 4 Peran), dan Fitur Interaktif Pemberian Star
+
+Pada Individual Assignment 4 ini, sistem autentikasi dan otorisasi dari Tutorial 04 diperluas ke entitas portofolio `Experience` (dari Tugas 3) serta menyelaraskan entitas `Project`, dengan penambahan peran baru **Editor** dan fitur interaktif pemberian **Star**.
+
+#### 1. Arsitektur Matriks Hak Akses (4 Peran)
+Sistem menerapkan pembatasan hak akses di sisi server (*server-side authorization*) yang ketat dengan matriks peran sebagai berikut:
+
+| Peran | Membaca (List & Detail) | Memberi / Membatalkan Star | Mengubah Data (Edit/Update) | Membuat Data (Tambah/Create) | Menghapus Data (Delete) |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Pengunjung Tanpa Login (*Guest*)** | ✅ Ya | ❌ Dialihkan ke `/login/` | ❌ Dialihkan ke `/login/` | ❌ Dialihkan ke `/login/` | ❌ Dialihkan ke `/login/` |
+| **Pengguna Biasa (*Authenticated*)** | ✅ Ya | ✅ Ya (`toggle_star`) | ❌ HTTP 403 Forbidden | ❌ HTTP 403 Forbidden | ❌ HTTP 403 Forbidden |
+| **Editor (Group `Editor`)** | ✅ Ya | ✅ Ya (`toggle_star`) | ✅ Ya (Form Edit) | ❌ HTTP 403 Forbidden | ❌ HTTP 403 Forbidden |
+| **Pemilik Portofolio (*Superuser*)** | ✅ Ya | ✅ Ya (`toggle_star`) | ✅ Ya (Form Edit) | ✅ Ya (Form Tambah) | ✅ Ya (Hapus & Modal) |
+
+#### 2. Implementasi Peran Editor & Otorisasi Sisi Server
+- **Penerapan Django Group `Editor` & Permission:**
+  - Dibuatkan migrasi data Django (`0007_create_editor_group.py`) yang secara otomatis membuat grup `Editor` di basis data serta mengasosiasikannya dengan permission `main.change_experience` dan `main.change_project`.
+  - Akun dapat ditambahkan ke grup `Editor` secara fleksibel melalui antarmuka Django Admin (`/admin`).
+- **Pemeriksaan Sisi Server (*Server-Side Checks*):**
+  - Menggunakan dekorator `@login_required(login_url="/login/")` pada seluruh endpoint aksi (`create`, `update`, `delete`, `toggle_star`), sehingga pengunjung anonim otomatis dialihkan ke halaman login.
+  - Untuk aksi `create` dan `delete`, view memverifikasi `if not request.user.is_superuser: raise PermissionDenied` (mengembalikan respons HTTP 403 Forbidden).
+  - Untuk aksi `update`, view memverifikasi `if not (request.user.is_superuser or request.user.groups.filter(name__iexact="Editor").exists() or request.user.has_perm("main.change_experience")): raise PermissionDenied`.
+  - Untuk aksi `toggle_star`, setiap pengguna terotentikasi dapat memberikan atau membatalkan star secara aman melalui request HTTP POST berpelindung `{% csrf_token %}`.
+
+#### 3. Penyembunyian Kontrol Aksi pada Template (*Template Control Hiding*)
+- **Context Processor `main.context_processors.user_roles`:**
+  - Menginjeksikan variabel boolean `is_editor` ke dalam seluruh template Django secara global.
+- **Kondisional UI:**
+  - Tombol **"+ Tambah Pengalaman"** dan **"+ Tambah Proyek"** dibungkus oleh `{% if user.is_superuser %}`.
+  - Tombol **"Edit"** dibungkus oleh `{% if user.is_superuser or is_editor %}`.
+  - Tombol **"Hapus"** beserta modal konfirmasi popover dibungkus oleh `{% if user.is_superuser %}`.
+  - Tombol **"Star / Unstar"** (`experience_star.html` dan `project_star.html`) menampilkan status personal pengguna (apakah sudah membintangi atau belum) dan total hitungan bintang.
+
+#### 4. Relasi ManyToMany Pemberian Star
+- Menambahkan relasi `starred_by = models.ManyToManyField(User, related_name="starred_experiences", blank=True)` pada model `Experience`.
+- Mengimplementasikan endpoint view `toggle_experience_star` yang memvalidasi bahwa setiap pengguna terdaftar hanya dapat memberikan maksimal satu star (toggle on/off).
+
+#### 5. Keamanan & Integritas API JSON
+- Endpoint `get_experience_json` dan `get_projects_json` tetap berfungsi optimal untuk publikasi data tanpa membocorkan atribut sensitif (seperti password hash, session key, atau email pribadi).
+
+---
+
+### AI Disclosure (Tugas 4)
+
+Pengerjaan Individual Assignment 4 ini memanfaatkan generative AI sebagai asisten pemrograman berpasangan (*pair programming*) dan arsitektur perangkat lunak dengan rincian transparansi sebagai berikut:
+- **Tools yang Digunakan:** Gemini (Antigravity Assistant).
+- **Strategi Prompting:**
+  1. **Spesifikasi Berbasis Matriks Peran (*Role-Matrix First*):** Memetakan matriks 4 peran pengguna (Guest, Regular, Editor, Superuser) secara komprehensif sebelum mengimplementasikan pemeriksaan di view dan template.
+  2. **Pengujian Menyeluruh Berbasis TDD (*Test-Driven Automation*):** Mengembangkan test suite pengujian hak akses dan fungsionalitas star pada `main/tests.py` hingga mencakup 62 test case lengkap yang seluruhnya lulus (`OK`).
+  3. **Keamanan Berlapis (*Defense in Depth*):** Memastikan pembatasan hak akses tidak hanya terjadi di level antarmuka visual (menyembunyikan tombol), melainkan divalidasi secara absolut di sisi server menggunakan `PermissionDenied` dan `login_required`.
+- **Aspek Spesifik yang Dibantu:**
+  1. **Perancangan Model & Migrasi:** Menambahkan relasi `starred_by` ManyToManyField pada model `Experience` dan membuat skrip migrasi database `0006_experience_starred_by.py` serta data migration `0007_create_editor_group.py`.
+  2. **Implementasi Otorisasi & View Star:** Menuliskan logika otorisasi server-side pada `create_experience`, `update_experience`, `delete_experience`, `update_project`, serta fungsi `toggle_experience_star`.
+  3. **Komponen Template & Context Processor:** Merancang `main/context_processors.py` untuk mendistribusikan status `is_editor`, membuat komponen `experience_star.html`, serta memperbarui modal aksi dan template halaman `experience.html` dan `projects.html`.
+  4. **Penyusunan Test Suite 62 Kasus Uji:** Menyusun skenario pengujian otomatis untuk memverifikasi setiap kemungkinan akses dari 4 peran pengguna berbeda, integritas endpoint JSON, dan mekanisme toggle star.
+- **Keterbatasan AI & Validasi Mandiri oleh Mahasiswa:**
+  1. **Penanganan Lingkungan Windows & File System:** Mahasiswa mengidentifikasi adanya anomali penulisan file kosong pada lingkungan sistem operasi lokal dan memastikan setiap file template, migrasi, dan konfigurasi tersimpan dengan benar menggunakan PowerShell UTF-8 encoding.
+  2. **Verifikasi Keanggotaan Grup Editor:** Mahasiswa memvalidasi secara langsung bahwa pemeriksaan grup menggunakan case-insensitive `name__iexact="Editor"` agar tangguh terhadap variasi penamaan di Django Admin.
+  3. **Verifikasi Manual dan Kontrol Git:** Mahasiswa menguji fungsionalitas aplikasi di peramban, memastikan status HTTP 403 Forbidden muncul tepat saat pengguna yang tidak berhak mencoba mengakses URL edit/tambah/hapus secara langsung, serta mengontrol penuh riwayat commit git.
