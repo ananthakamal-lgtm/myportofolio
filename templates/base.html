@@ -7,29 +7,199 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=2.2">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=2.5">
+    <style>
+    /* Full-Width 3-Section Header Architecture */
+    .site-header {
+        width: 100% !important;
+        border-bottom: 1px solid var(--line, #e3d9c9) !important;
+        background-color: var(--paper, #faf6f0) !important;
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 50 !important;
+    }
+
+    .site-header .container,
+    .header-container {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        padding: 1.1rem clamp(1.5rem, 4vw, 4rem) !important;
+        gap: 2rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .header-left {
+        flex: 1 1 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+    }
+
+    .brand {
+        font-size: 1.35rem !important;
+        font-weight: 700 !important;
+        color: var(--ink, #1c1917) !important;
+        text-decoration: none !important;
+        letter-spacing: -0.02em !important;
+        white-space: nowrap !important;
+        font-family: "Space Grotesk", -apple-system, sans-serif !important;
+        transition: color 0.2s ease !important;
+    }
+
+    .brand:hover {
+        color: var(--accent, #d95d39) !important;
+    }
+
+    .header-center {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 2rem !important;
+        white-space: nowrap !important;
+    }
+
+    .header-center a {
+        color: var(--ink, #1c1917) !important;
+        text-decoration: none !important;
+        font-size: 0.95rem !important;
+        font-weight: 500 !important;
+        position: relative !important;
+        padding-bottom: 0.2rem !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .header-center a:hover {
+        color: var(--accent, #d95d39) !important;
+    }
+
+    .header-center a.active {
+        color: var(--accent, #d95d39) !important;
+        font-weight: 700 !important;
+        border-bottom: 2px solid var(--accent, #d95d39) !important;
+    }
+
+    .header-right {
+        flex: 1 1 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        gap: 0.85rem !important;
+        white-space: nowrap !important;
+    }
+
+    .nav-auth-link {
+        text-decoration: none !important;
+        font-size: 0.88rem !important;
+        font-weight: 600 !important;
+        transition: all 0.2s ease !important;
+        display: inline-flex !important;
+        align-items: center !important;
+    }
+
+    /* Register: Plain button */
+    .nav-register-btn {
+        padding: 0.45rem 1.15rem !important;
+        border: 1.5px solid #e3d9c9 !important;
+        border-radius: 4px !important;
+        background-color: #ffffff !important;
+        color: #1c1917 !important;
+        box-shadow: none !important;
+    }
+
+    .nav-register-btn:hover {
+        background-color: #faf8f5 !important;
+        border-color: #1c1917 !important;
+        color: #1c1917 !important;
+    }
+
+    /* Login: Colored button */
+    .nav-login-btn {
+        padding: 0.45rem 1.25rem !important;
+        border: 1.5px solid #1c1917 !important;
+        border-radius: 4px !important;
+        background-color: #d95d39 !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+        box-shadow: 2px 2px 0px #1c1917 !important;
+    }
+
+    .nav-login-btn:hover {
+        background-color: #a8442a !important;
+        border-color: #1c1917 !important;
+        box-shadow: 1px 1px 0px #1c1917 !important;
+        color: #ffffff !important;
+        transform: translate(1px, 1px) !important;
+    }
+
+    .nav-logout-btn {
+        padding: 0.35rem 0.85rem !important;
+        border: 1px solid #e3d9c9 !important;
+        border-radius: 4px !important;
+        color: #6b6459 !important;
+        background: #faf8f5 !important;
+    }
+
+    .nav-logout-btn:hover {
+        border-color: #b42318 !important;
+        color: #b42318 !important;
+        background-color: #fef2f2 !important;
+    }
+
+    @media (max-width: 860px) {
+        .site-header .container,
+        .header-container {
+            flex-direction: column !important;
+            gap: 0.85rem !important;
+            padding: 0.85rem 1.25rem !important;
+        }
+        .header-left,
+        .header-center,
+        .header-right {
+            flex: initial !important;
+            width: 100% !important;
+            justify-content: center !important;
+        }
+        .header-center {
+            gap: 1.25rem !important;
+            flex-wrap: wrap !important;
+        }
+    }
+    </style>
     {% block meta %}
     <title>{{ name }}'s Portofolio</title>
     {% endblock meta %}
 </head>
 <body>
-    <!-- Site Navigation -->
+    <!-- Site Navigation: 3-Section Header -->
     <header class="site-header">
-        <div class="container">
-            <a href="{% url 'main:show_main' %}" class="brand">{{ name }}'s Portofolio</a>
-            <nav>
+        <div class="container header-container">
+            <!-- 1. Bagian Kiri: Title "Anantha's Portofolio" -->
+            <div class="header-left">
+                <a href="{% url 'main:show_main' %}" class="brand">{{ name }}'s Portofolio</a>
+            </div>
+
+            <!-- 2. Bagian Tengah: Navigation Bar -->
+            <nav class="header-center">
                 <a href="{% url 'main:show_main' %}" class="{% block nav_profile %}{% endblock %}">Profile</a>
                 <a href="{% url 'main:show_experience' %}" class="{% block nav_experience %}{% endblock %}">Experience</a>
                 <a href="{% url 'main:show_projects' %}" class="{% block nav_projects %}{% endblock %}">Projects</a>
                 <a href="{% url 'main:show_achievements' %}" class="{% block nav_achievements %}{% endblock %}">Achievements</a>
+            </nav>
+
+            <!-- 3. Bagian Kanan: Register (Plain) dan Login (Berwarna) -->
+            <div class="header-right">
                 {% if user.is_authenticated %}
                     <span class="nav-user">{{ user.username }}</span>
-                    <a href="{% url 'main:logout' %}">Logout</a>
+                    <a href="{% url 'main:logout' %}" class="nav-auth-link nav-logout-btn">Logout</a>
                 {% else %}
-                    <a href="{% url 'main:login' %}">Login</a>
-                    <a href="{% url 'main:register' %}">Register</a>
+                    <a href="{% url 'main:register' %}" class="nav-auth-link nav-register-btn">Register</a>
+                    <a href="{% url 'main:login' %}" class="nav-auth-link nav-login-btn">Login</a>
                 {% endif %}
-            </nav>
+            </div>
         </div>
     </header>
 
