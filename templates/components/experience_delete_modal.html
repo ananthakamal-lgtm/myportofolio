@@ -1,7 +1,10 @@
-<div class="experience-actions">
+﻿<div class="experience-actions">
+    {% if user.is_superuser or is_editor %}
     <a href="{% url 'main:update_experience' experience.id %}" class="button button-secondary button-sm" aria-label="Edit {{ experience.title }}">
         Edit
     </a>
+    {% endif %}
+    {% if user.is_superuser %}
     <button type="button"
             class="button button-danger button-sm"
             popovertarget="delete-experience-{{ experience.id }}"
@@ -9,7 +12,9 @@
             title="Hapus pengalaman">
         Hapus
     </button>
+    {% endif %}
 </div>
+{% if user.is_superuser %}
 <div id="delete-experience-{{ experience.id }}"
      class="project-delete-modal"
      popover="auto"
@@ -45,4 +50,4 @@
         </div>
     </div>
 </div>
-
+{% endif %}
