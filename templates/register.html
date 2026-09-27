@@ -1,35 +1,729 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block meta %}
     <title>Register - {{ name }}</title>
 {% endblock meta %}
 
 {% block content %}
-    <main>
-        <section class="experience-section">
-            <div class="container">
-                <h1>Buat Akun</h1>
-                <form method="post" action="{% url 'main:register' %}" class="project-form">
-                    {% csrf_token %}
-                    {% for error in form.non_field_errors %}
+<style>
+/* Reset & Register Card Layout */
+.auth-main {
+    min-height: calc(85vh - 120px);
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 3rem 1.25rem !important;
+    background: radial-gradient(circle at 50% 20%, rgba(217, 93, 57, 0.06), transparent 70%), var(--paper, #faf6f0) !important;
+}
+
+.auth-container {
+    width: 100% !important;
+    max-width: 480px !important;
+    margin: 0 auto !important;
+}
+
+.auth-card {
+    background: #ffffff !important;
+    border: 2px solid #1c1917 !important;
+    border-radius: 10px !important;
+    box-shadow: 6px 6px 0px #1c1917 !important;
+    padding: 2.25rem 2rem !important;
+    position: relative !important;
+    box-sizing: border-box !important;
+}
+
+.auth-header {
+    text-align: center !important;
+    margin-bottom: 1.75rem !important;
+}
+
+.auth-icon-badge {
+    width: 52px !important;
+    height: 52px !important;
+    margin: 0 auto 1rem auto !important;
+    background: #fff4ed !important;
+    color: #d95d39 !important;
+    border: 2px solid #d95d39 !important;
+    border-radius: 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 2px 2px 0px #a8442a !important;
+}
+
+.auth-title {
+    font-size: 1.75rem !important;
+    font-weight: 700 !important;
+    color: #1c1917 !important;
+    letter-spacing: -0.02em !important;
+    margin: 0 0 0.4rem 0 !important;
+    font-family: "Space Grotesk", -apple-system, sans-serif !important;
+}
+
+.auth-subtitle {
+    font-size: 0.9rem !important;
+    color: #6b6459 !important;
+    line-height: 1.45 !important;
+    margin: 0 !important;
+}
+
+/* Alert Messages */
+.auth-alert {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+    padding: 0.85rem 1rem !important;
+    border-radius: 6px !important;
+    font-size: 0.88rem !important;
+    margin-bottom: 1.25rem !important;
+    line-height: 1.4 !important;
+}
+
+.auth-alert p {
+    margin: 0 !important;
+}
+
+.auth-alert--error {
+    background: #fef2f2 !important;
+    color: #991b1b !important;
+    border: 1.5px solid #f87171 !important;
+}
+
+/* Fields & Groups */
+.auth-field-group {
+    margin-bottom: 1.25rem !important;
+}
+
+.auth-label-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 0.4rem !important;
+}
+
+.auth-label {
+    display: block !important;
+    font-weight: 700 !important;
+    font-size: 0.9rem !important;
+    color: #1c1917 !important;
+}
+
+.auth-input-wrapper {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+}
+
+.auth-input-icon {
+    position: absolute !important;
+    left: 0.9rem !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    color: #6b6459 !important;
+    pointer-events: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 5 !important;
+}
+
+.auth-input-wrapper input {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 0.75rem 2.6rem 0.75rem 2.65rem !important;
+    font-size: 0.95rem !important;
+    border: 1.5px solid #e3d9c9 !important;
+    border-radius: 4px !important;
+    background-color: #faf8f5 !important;
+    color: #1c1917 !important;
+    font-family: inherit !important;
+    outline: none !important;
+    transition: all 0.2s ease !important;
+}
+
+.auth-input-wrapper input:focus {
+    border-color: #d95d39 !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 0 0 3px rgba(217, 93, 57, 0.16) !important;
+}
+
+.auth-eye-btn {
+    position: absolute !important;
+    right: 0.7rem !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    background: transparent !important;
+    border: 0 !important;
+    padding: 0.35rem !important;
+    color: #6b6459 !important;
+    cursor: pointer !important;
+    border-radius: 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 5 !important;
+    transition: color 0.2s ease, background-color 0.2s ease !important;
+}
+
+.auth-eye-btn:hover {
+    color: #1c1917 !important;
+    background-color: rgba(28, 25, 23, 0.08) !important;
+}
+
+/* Password Status Badge */
+.password-status-badge {
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    padding: 0.15rem 0.55rem !important;
+    border-radius: 999px !important;
+    background: #f3f4f6 !important;
+    color: #6b7280 !important;
+    transition: all 0.25s ease !important;
+    border: 1px solid transparent !important;
+}
+
+.password-status-badge.status--perfect {
+    background: #dcfce7 !important;
+    color: #15803d !important;
+    border-color: #86efac !important;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.45) !important;
+}
+
+.password-status-badge.status--good {
+    background: #ecfdf5 !important;
+    color: #047857 !important;
+    border-color: #a7f3d0 !important;
+}
+
+.password-status-badge.status--medium {
+    background: #fef3c7 !important;
+    color: #b45309 !important;
+    border-color: #fde68a !important;
+}
+
+.password-status-badge.status--weak {
+    background: #fee2e2 !important;
+    color: #b91c1c !important;
+    border-color: #fecaca !important;
+}
+
+/* Password Criteria Checklist Container */
+.password-criteria-box {
+    margin-top: 0.75rem !important;
+    padding: 0.85rem 1rem !important;
+    background: #faf8f5 !important;
+    border: 1.5px solid #e3d9c9 !important;
+    border-radius: 8px !important;
+    transition: border-color 0.2s ease !important;
+}
+
+.criteria-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 0.4rem !important;
+}
+
+.criteria-title {
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    color: #6b6459 !important;
+}
+
+.criteria-meter-text {
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    color: #6b6459 !important;
+}
+
+.criteria-bar-track {
+    width: 100% !important;
+    height: 5px !important;
+    background: #e7e2d9 !important;
+    border-radius: 999px !important;
+    overflow: hidden !important;
+    margin-bottom: 0.75rem !important;
+}
+
+.criteria-bar-fill {
+    height: 100% !important;
+    width: 0% !important;
+    background-color: transparent !important;
+    border-radius: 999px !important;
+    transition: width 0.3s ease, background-color 0.3s ease !important;
+}
+
+.criteria-list {
+    list-style: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.45rem !important;
+}
+
+.criteria-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.6rem !important;
+    font-size: 0.82rem !important;
+    color: #78716c !important;
+    transition: color 0.25s ease, transform 0.2s ease !important;
+}
+
+.criteria-check {
+    width: 18px !important;
+    height: 18px !important;
+    border-radius: 50% !important;
+    border: 1.5px solid #d6d3d1 !important;
+    background: #ffffff !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: transparent !important;
+    flex-shrink: 0 !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.criteria-check svg {
+    width: 12px !important;
+    height: 12px !important;
+}
+
+/* Interactive Light-Up State (Centang Otomatis Menyala) */
+.criteria-item.is-met {
+    color: #065f46 !important;
+    font-weight: 600 !important;
+}
+
+.criteria-item.is-met .criteria-check {
+    background: #10b981 !important;
+    border-color: #10b981 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.6), 0 0 2px rgba(16, 185, 129, 0.9) !important;
+    transform: scale(1.08) !important;
+}
+
+.criteria-item.is-met .check-icon {
+    stroke: #ffffff !important;
+    animation: checkmarkPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+@keyframes checkmarkPop {
+    0% { transform: scale(0.4); opacity: 0; }
+    60% { transform: scale(1.25); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.criteria-label {
+    line-height: 1.3 !important;
+}
+
+.match-status {
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    margin-top: 0.35rem !important;
+    display: none;
+}
+.match-status.match--yes {
+    display: block !important;
+    color: #15803d !important;
+}
+.match-status.match--no {
+    display: block !important;
+    color: #b91c1c !important;
+}
+
+/* Helper note */
+.form-help-subtle {
+    font-size: 0.75rem !important;
+    color: #6b6459 !important;
+    margin-top: 0.35rem !important;
+}
+
+/* Submit Button & Links */
+.auth-submit-btn {
+    width: 100% !important;
+    margin-top: 1.5rem !important;
+    padding: 0.85rem 1rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.5rem !important;
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    border: 2px solid #1c1917 !important;
+    box-shadow: 4px 4px 0px #1c1917 !important;
+    border-radius: 4px !important;
+    background-color: #d95d39 !important;
+    color: #ffffff !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+}
+
+.auth-submit-btn:hover {
+    background-color: #a8442a !important;
+    box-shadow: 2px 2px 0px #1c1917 !important;
+    transform: translate(2px, 2px) !important;
+}
+
+.auth-submit-btn:active {
+    box-shadow: 0px 0px 0px #1c1917 !important;
+    transform: translate(4px, 4px) !important;
+}
+
+.auth-footer {
+    margin-top: 1.5rem !important;
+    padding-top: 1.25rem !important;
+    border-top: 1px solid #e3d9c9 !important;
+    text-align: center !important;
+    font-size: 0.88rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.65rem !important;
+}
+
+.auth-link {
+    color: #d95d39 !important;
+    font-weight: 700 !important;
+    text-decoration: underline !important;
+    text-underline-offset: 3px !important;
+    transition: color 0.2s ease !important;
+}
+
+.auth-link:hover {
+    color: #a8442a !important;
+}
+
+.auth-back-link {
+    color: #6b6459 !important;
+    font-size: 0.82rem !important;
+    text-decoration: none !important;
+    transition: color 0.2s ease !important;
+}
+
+.auth-back-link:hover {
+    color: #1c1917 !important;
+}
+
+@media (max-width: 480px) {
+    .auth-card {
+        padding: 1.5rem 1.25rem !important;
+        box-shadow: 4px 4px 0px #1c1917 !important;
+    }
+    .auth-title {
+        font-size: 1.5rem !important;
+    }
+}
+</style>
+
+<main class="auth-main">
+    <div class="auth-container">
+        <div class="auth-card">
+            <!-- Header Brand & Greeting -->
+            <div class="auth-header">
+                <div class="auth-icon-badge">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                    </svg>
+                </div>
+                <h1 class="auth-title">Buat Akun</h1>
+                <p class="auth-subtitle">Daftarkan akun baru Anda untuk bergabung di portofolio.</p>
+            </div>
+
+            <!-- Error Alerts -->
+            {% if form.non_field_errors %}
+                <div class="auth-alert auth-alert--error" role="alert">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <div>
+                        {% for error in form.non_field_errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Register Form -->
+            <form method="post" action="{% url 'main:register' %}" class="auth-form" id="register-form">
+                {% csrf_token %}
+
+                <!-- Username Field -->
+                <div class="form-group auth-field-group">
+                    <label for="{{ form.username.id_for_label }}" class="auth-label">
+                        Username
+                    </label>
+                    <div class="auth-input-wrapper">
+                        <span class="auth-input-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </span>
+                        {{ form.username }}
+                    </div>
+                    <p class="form-help-subtle">Maksimal 150 karakter berupa huruf, angka, dan @/./+/-/_.</p>
+                    {% for error in form.username.errors %}
                         <p class="form-error">{{ error }}</p>
                     {% endfor %}
-                    {% for field in form %}
-                        <div class="form-group">
-                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                            {{ field }}
-                            {% if field.help_text %}
-                                <div class="form-help">{{ field.help_text }}</div>
-                            {% endif %}
-                            {% for error in field.errors %}
-                                <p class="form-error">{{ error }}</p>
-                            {% endfor %}
-                        </div>
+                </div>
+
+                <!-- Password 1 Field -->
+                <div class="form-group auth-field-group">
+                    <div class="auth-label-row">
+                        <label for="{{ form.password1.id_for_label }}" class="auth-label">
+                            Password
+                        </label>
+                        <span id="password-status-badge" class="password-status-badge">
+                            Menunggu input...
+                        </span>
+                    </div>
+                    <div class="auth-input-wrapper">
+                        <span class="auth-input-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                        </span>
+                        {{ form.password1 }}
+                        <button type="button" id="toggle-password1" class="auth-eye-btn" aria-label="Lihat password" title="Lihat password">
+                            <svg id="eye1-icon-show" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <svg id="eye1-icon-hide" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    {% for error in form.password1.errors %}
+                        <p class="form-error">{{ error }}</p>
                     {% endfor %}
-                    <button type="submit" class="button" style="margin-top: 1rem;">Daftar</button>
-                </form>
-                <p style="margin-top: 1.5rem;">Sudah punya akun? <a href="{% url 'main:login' %}">Login di sini</a>.</p>
+
+                    <!-- Live Password Criteria Checklist with Glowing Animation -->
+                    <div class="password-criteria-box" id="password-criteria-box">
+                        <div class="criteria-header">
+                            <span class="criteria-title">Syarat Password:</span>
+                            <span class="criteria-meter-text" id="criteria-meter-text">0 / 4 terpenuhi</span>
+                        </div>
+                        <div class="criteria-bar-track">
+                            <div class="criteria-bar-fill" id="criteria-bar-fill"></div>
+                        </div>
+                        <ul class="criteria-list">
+                            <li class="criteria-item" id="crit-length">
+                                <span class="criteria-check">
+                                    <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </span>
+                                <span class="criteria-label">Minimal 8 karakter</span>
+                            </li>
+                            <li class="criteria-item" id="crit-number">
+                                <span class="criteria-check">
+                                    <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </span>
+                                <span class="criteria-label">Mengandung setidaknya 1 angka (0-9)</span>
+                            </li>
+                            <li class="criteria-item" id="crit-case">
+                                <span class="criteria-check">
+                                    <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </span>
+                                <span class="criteria-label">Kombinasi huruf besar & kecil (A-Z, a-z)</span>
+                            </li>
+                            <li class="criteria-item" id="crit-special">
+                                <span class="criteria-check">
+                                    <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </span>
+                                <span class="criteria-label">Mengandung simbol khusus (@, $, !, %, *, #, dll)</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Password Confirmation Field -->
+                <div class="form-group auth-field-group">
+                    <label for="{{ form.password2.id_for_label }}" class="auth-label">
+                        Konfirmasi Password
+                    </label>
+                    <div class="auth-input-wrapper">
+                        <span class="auth-input-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                        </span>
+                        {{ form.password2 }}
+                        <button type="button" id="toggle-password2" class="auth-eye-btn" aria-label="Lihat konfirmasi password" title="Lihat konfirmasi password">
+                            <svg id="eye2-icon-show" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <svg id="eye2-icon-hide" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="match-status" class="match-status"></div>
+                    {% for error in form.password2.errors %}
+                        <p class="form-error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="button auth-submit-btn">
+                    <span>Daftar Akun</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </button>
+            </form>
+
+            <!-- Card Footer -->
+            <div class="auth-footer">
+                <p>Sudah punya akun? <a href="{% url 'main:login' %}" class="auth-link">Login di sini</a></p>
+                <a href="{% url 'main:show_main' %}" class="auth-back-link">← Kembali ke Beranda</a>
             </div>
-        </section>
-    </main>
+        </div>
+    </div>
+</main>
+
+<!-- Interactive Script for Password Validation & Visibility Toggle -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const p1Input = document.getElementById("id_password1");
+    const p2Input = document.getElementById("id_password2");
+    
+    // Toggle 1
+    const toggle1 = document.getElementById("toggle-password1");
+    const eye1Show = document.getElementById("eye1-icon-show");
+    const eye1Hide = document.getElementById("eye1-icon-hide");
+    if (toggle1 && p1Input) {
+        toggle1.addEventListener("click", function () {
+            const isPassword = p1Input.getAttribute("type") === "password";
+            p1Input.setAttribute("type", isPassword ? "text" : "password");
+            eye1Show.style.display = isPassword ? "none" : "inline";
+            eye1Hide.style.display = isPassword ? "inline" : "none";
+        });
+    }
+
+    // Toggle 2
+    const toggle2 = document.getElementById("toggle-password2");
+    const eye2Show = document.getElementById("eye2-icon-show");
+    const eye2Hide = document.getElementById("eye2-icon-hide");
+    if (toggle2 && p2Input) {
+        toggle2.addEventListener("click", function () {
+            const isPassword = p2Input.getAttribute("type") === "password";
+            p2Input.setAttribute("type", isPassword ? "text" : "password");
+            eye2Show.style.display = isPassword ? "none" : "inline";
+            eye2Hide.style.display = isPassword ? "inline" : "none";
+        });
+    }
+
+    // Password Criteria & Glowing Checkmarks
+    const statusBadge = document.getElementById("password-status-badge");
+    const meterText = document.getElementById("criteria-meter-text");
+    const barFill = document.getElementById("criteria-bar-fill");
+
+    const critLength = document.getElementById("crit-length");
+    const critNumber = document.getElementById("crit-number");
+    const critCase = document.getElementById("crit-case");
+    const critSpecial = document.getElementById("crit-special");
+    const matchStatus = document.getElementById("match-status");
+
+    function validatePassword() {
+        const val = p1Input.value;
+
+        const isLengthOk = val.length >= 8;
+        const isNumberOk = /[0-9]/.test(val);
+        const isCaseOk = /[a-z]/.test(val) && /[A-Z]/.test(val);
+        const isSpecialOk = /[^A-Za-z0-9]/.test(val);
+
+        updateCriteria(critLength, isLengthOk);
+        updateCriteria(critNumber, isNumberOk);
+        updateCriteria(critCase, isCaseOk);
+        updateCriteria(critSpecial, isSpecialOk);
+
+        const metCount = [isLengthOk, isNumberOk, isCaseOk, isSpecialOk].filter(Boolean).length;
+        meterText.textContent = `${metCount} / 4 terpenuhi`;
+        barFill.style.width = `${(metCount / 4) * 100}%`;
+
+        if (val.length === 0) {
+            statusBadge.textContent = "Menunggu input...";
+            statusBadge.className = "password-status-badge";
+            barFill.style.backgroundColor = "transparent";
+        } else if (metCount === 4) {
+            statusBadge.textContent = "✓ Sesuai Syarat!";
+            statusBadge.className = "password-status-badge status--perfect";
+            barFill.style.backgroundColor = "#10b981";
+        } else if (metCount >= 3) {
+            statusBadge.textContent = "Kuat";
+            statusBadge.className = "password-status-badge status--good";
+            barFill.style.backgroundColor = "#22c55e";
+        } else if (metCount >= 2) {
+            statusBadge.textContent = "Sedang";
+            statusBadge.className = "password-status-badge status--medium";
+            barFill.style.backgroundColor = "#f59e0b";
+        } else {
+            statusBadge.textContent = "Lemah";
+            statusBadge.className = "password-status-badge status--weak";
+            barFill.style.backgroundColor = "#ef4444";
+        }
+
+        checkMatch();
+    }
+
+    function checkMatch() {
+        if (!p2Input) return;
+        const val1 = p1Input ? p1Input.value : "";
+        const val2 = p2Input.value;
+
+        if (!val2) {
+            matchStatus.style.display = "none";
+            return;
+        }
+
+        if (val1 === val2) {
+            matchStatus.textContent = "✓ Password cocok!";
+            matchStatus.className = "match-status match--yes";
+        } else {
+            matchStatus.textContent = "✕ Password belum cocok";
+            matchStatus.className = "match-status match--no";
+        }
+    }
+
+    function updateCriteria(element, isValid) {
+        if (isValid) {
+            element.classList.add("is-met");
+        } else {
+            element.classList.remove("is-met");
+        }
+    }
+
+    if (p1Input) {
+        p1Input.addEventListener("input", validatePassword);
+        if (p1Input.value) validatePassword();
+    }
+    if (p2Input) {
+        p2Input.addEventListener("input", checkMatch);
+    }
+});
+</script>
 {% endblock content %}
