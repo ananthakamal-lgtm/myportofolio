@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block meta %}
+    <title>Achievements - {{ name }}</title>
+{% endblock meta %}
+
+{% block content %}
+<main>
+    <section class="experience-section">
+        <div class="container">
+            <h1>Achievements</h1>
+
+            <div class="experience-grid">
+                {% for achievement in achievement_list %}
+                    <article class="experience-card">
+                        <span class="experience-category">{{ achievement.get_level_display }}</span>
+                        
+                        {% if achievement.is_top_tier %}
+                            <span class="tag" style="background: var(--accent); color: white;">Top Tier</span>
+                        {% endif %}
+
+                        <h2>{{ achievement.title }}</h2>
+                        <p class="experience-description">{{ achievement.description }}</p>
+                        <p class="experience-status">{{ achievement.achieved_at }}</p>
+                    </article>
+                {% empty %}
+                    <p class="empty-state">No achievements have been added yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+</main>
+{% endblock content %}

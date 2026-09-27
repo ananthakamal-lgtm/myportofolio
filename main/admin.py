@@ -1,5 +1,5 @@
 from django.contrib import admin
-from main.models import Experience, Project
+from main.models import Experience, Project, Achievement
 
 # Register your models here.
 
@@ -16,3 +16,9 @@ class ProjectAdmin(admin.ModelAdmin):
     list_filter = ("category", "year")
     search_fields = ("title", "description", "tech_stack")
 
+
+@admin.register(Achievement)
+class AchievementAdmin(admin.ModelAdmin):
+    list_display = ("title", "level", "achieved_at")
+    list_filter = ("level", "achieved_at")
+    search_fields = ("title", "description", "level")

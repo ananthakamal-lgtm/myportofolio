@@ -48,3 +48,23 @@ class Project(models.Model):
         if not self.tech_stack:
             return []
         return [tag.strip() for tag in self.tech_stack.split(",") if tag.strip()]
+
+class Achievement(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    LEVEL_CHOICES = [
+        ('campus', 'Tingkat Kampus'),
+        ('national', 'Tingkat Nasional'),
+        ('international', 'Tingkat International'),
+    ]
+    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default='campus')
+    achieved_at = models.DateField()
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def is_top_tier(self):
+        return self.level=='national' or self.level=='international'
+

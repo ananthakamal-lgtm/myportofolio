@@ -12,6 +12,7 @@ from main.views import (
     show_projects,
     update_experience,
     update_project,
+    show_achievements
 )
 
 app_name = "main"
@@ -28,4 +29,5 @@ urlpatterns = [
     path("projects/<uuid:project_id>/edit/", update_project, name="update_project"),
     path("projects/<uuid:project_id>/delete/", delete_project, name="delete_project"),
     path("api/projects/", get_projects_json, name="get_projects_json"),
+    path('achievements/', show_achievements, name='show_achievements'),
 ]

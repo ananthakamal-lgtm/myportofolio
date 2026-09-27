@@ -4,7 +4,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from main.forms import ExperienceForm, ProjectForm
-from main.models import Experience, Project
+from main.models import Experience, Project, Achievement
 
 
 def show_main(request):
@@ -168,3 +168,13 @@ def delete_project(request, project_id):
         return redirect("main:show_projects")
 
     return redirect("main:show_projects")
+
+
+def show_achievements(request):
+    achievement = Achievement.objects.order_by("-achieved_at")
+    context = {
+        'name':'Anantha',
+        'achievement_list':achievement,
+    }
+
+    return render(request, 'achievements.html', context)
