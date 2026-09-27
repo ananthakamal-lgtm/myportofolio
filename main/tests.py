@@ -1,11 +1,12 @@
 import json
 import uuid
+from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from main.forms import ExperienceForm, ProjectForm
-from main.models import Experience, Project
+from main.models import Experience, Project, Achievement
 
 
 class MainTest(TestCase):
@@ -210,6 +211,11 @@ class ExperienceCRUDTest(TestCase):
 
 class ProjectTest(TestCase):
     def setUp(self):
+        self.superuser = User.objects.create_superuser(
+            username="admin_test",
+            password="admin_password",
+            email="admin@example.com",
+        )
         self.project = Project.objects.create(
             title="Automated Manga Translator",
             category="Computer Vision · NLP",
@@ -255,6 +261,7 @@ class ProjectTest(TestCase):
         self.assertNotContains(response, self.project.title)
 
     def test_create_project_get(self):
+        self.client.force_login(self.superuser)
         response = self.client.get(reverse("main:create_project"))
 
         self.assertEqual(response.status_code, 200)
@@ -263,6 +270,7 @@ class ProjectTest(TestCase):
         self.assertContains(response, "Add New Project")
 
     def test_create_project_post_valid(self):
+        self.client.force_login(self.superuser)
         data = {
             "title": "New AI Tool",
             "category": "Artificial Intelligence",
@@ -279,6 +287,7 @@ class ProjectTest(TestCase):
         self.assertTrue(Project.objects.filter(title="New AI Tool").exists())
 
     def test_create_project_post_invalid(self):
+        self.client.force_login(self.superuser)
         initial_count = Project.objects.count()
         response = self.client.post(reverse("main:create_project"), {"title": ""})
 
@@ -287,6 +296,7 @@ class ProjectTest(TestCase):
         self.assertFormError(response.context["form"], "title", "This field is required.")
 
     def test_update_project_get(self):
+        self.client.force_login(self.superuser)
         response = self.client.get(
             reverse("main:update_project", kwargs={"project_id": self.project.id})
         )
@@ -297,6 +307,7 @@ class ProjectTest(TestCase):
         self.assertContains(response, self.project.title)
 
     def test_update_project_post_valid(self):
+        self.client.force_login(self.superuser)
         data = {
             "title": "Automated Manga Translator v2",
             "category": "Computer Vision · NLP",
@@ -317,12 +328,14 @@ class ProjectTest(TestCase):
         self.assertEqual(self.project.title, "Automated Manga Translator v2")
 
     def test_update_project_nonexistent_returns_404(self):
+        self.client.force_login(self.superuser)
         response = self.client.get(
             reverse("main:update_project", kwargs={"project_id": uuid.uuid4()})
         )
         self.assertEqual(response.status_code, 404)
 
     def test_delete_project_post(self):
+        self.client.force_login(self.superuser)
         project_id = self.project.id
         response = self.client.post(
             reverse("main:delete_project", kwargs={"project_id": project_id})
@@ -333,6 +346,7 @@ class ProjectTest(TestCase):
         self.assertFalse(Project.objects.filter(id=project_id).exists())
 
     def test_delete_project_get_redirects_without_deleting(self):
+        self.client.force_login(self.superuser)
         response = self.client.get(
             reverse("main:delete_project", kwargs={"project_id": self.project.id})
         )
@@ -341,6 +355,7 @@ class ProjectTest(TestCase):
         self.assertTrue(Project.objects.filter(id=self.project.id).exists())
 
     def test_delete_nonexistent_project_returns_404(self):
+        self.client.force_login(self.superuser)
         response = self.client.post(
             reverse("main:delete_project", kwargs={"project_id": uuid.uuid4()})
         )
@@ -378,3 +393,196 @@ class ProjectTest(TestCase):
         response_empty = self.client.get(reverse("main:get_projects_json") + "?title=NotExisting")
         data_empty = json.loads(response_empty.content.decode("utf-8"))
         self.assertEqual(len(data_empty), 0)
+
+
+class AuthTest(TestCase):
+    def setUp(self):
+        self.username = "testuser"
+        self.password = "ValidPassword123!"
+        self.user = User.objects.create_user(
+            username=self.username,
+            password=self.password,
+        )
+
+    def test_register_page_get(self):
+        response = self.client.get(reverse("main:register"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "register.html")
+        self.assertContains(response, "Buat Akun")
+
+    def test_register_post_success(self):
+        data = {
+            "username": "newuser",
+            "password1": "ComplexPass123!@",
+            "password2": "ComplexPass123!@",
+        }
+        response = self.client.post(reverse("main:register"), data)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("main:login"))
+        self.assertTrue(User.objects.filter(username="newuser").exists())
+
+    def test_register_post_password_mismatch(self):
+        data = {
+            "username": "mismatchuser",
+            "password1": "ComplexPass123!@",
+            "password2": "DifferentPass123!@",
+        }
+        response = self.client.post(reverse("main:register"), data)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(User.objects.filter(username="mismatchuser").exists())
+
+    def test_login_page_get(self):
+        response = self.client.get(reverse("main:login"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "login.html")
+        self.assertContains(response, "Login")
+
+    def test_login_post_success_and_cookie(self):
+        data = {
+            "username": self.username,
+            "password": self.password,
+        }
+        response = self.client.post(reverse("main:login"), data)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("main:show_main"))
+        self.assertIn("last_login", response.cookies)
+        self.assertTrue(response.cookies["last_login"].value)
+
+    def test_login_post_invalid(self):
+        data = {
+            "username": self.username,
+            "password": "wrongpassword",
+        }
+        response = self.client.post(reverse("main:login"), data)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("last_login", response.cookies)
+
+    def test_logout_deletes_cookie(self):
+        self.client.login(username=self.username, password=self.password)
+        self.client.cookies["last_login"] = "2026-09-27 12:00:00"
+        response = self.client.get(reverse("main:logout"))
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("main:show_main"))
+        self.assertEqual(response.cookies["last_login"].value, "")
+
+    def test_show_main_last_login_cookie_display(self):
+        response = self.client.get(reverse("main:show_main"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Belum ada sesi login / Cookie tidak ditemukan")
+
+        self.client.cookies["last_login"] = "2026-09-27 15:30:00"
+        response = self.client.get(reverse("main:show_main"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "2026-09-27 15:30:00")
+
+    def test_navbar_guest(self):
+        response = self.client.get(reverse("main:show_main"))
+        self.assertContains(response, f'href="{reverse("main:login")}"')
+        self.assertContains(response, f'href="{reverse("main:register")}"')
+        self.assertNotContains(response, reverse("main:logout"))
+
+    def test_navbar_authenticated(self):
+        self.client.login(username=self.username, password=self.password)
+        response = self.client.get(reverse("main:show_main"))
+        self.assertContains(response, self.username)
+        self.assertContains(response, f'href="{reverse("main:logout")}"')
+        self.assertNotContains(response, f'href="{reverse("main:login")}"')
+
+
+class AuthorizationAndStarTest(TestCase):
+    def setUp(self):
+        self.regular_user = User.objects.create_user(
+            username="regular_user",
+            password="RegularPassword123!",
+        )
+        self.superuser = User.objects.create_superuser(
+            username="super_user",
+            password="SuperPassword123!",
+            email="super@example.com",
+        )
+        self.project = Project.objects.create(
+            title="Star Project",
+            category="Web Dev",
+            description="Testing stars and authorization",
+            year=2026,
+            tech_stack="Django, HTML",
+        )
+
+    def test_guest_cannot_access_create_project(self):
+        response = self.client.get(reverse("main:create_project"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login/", response.url)
+
+    def test_regular_user_forbidden_create_project(self):
+        self.client.force_login(self.regular_user)
+        response = self.client.get(reverse("main:create_project"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_guest_cannot_delete_project(self):
+        response = self.client.post(
+            reverse("main:delete_project", kwargs={"project_id": self.project.id})
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login/", response.url)
+        self.assertTrue(Project.objects.filter(id=self.project.id).exists())
+
+    def test_regular_user_forbidden_delete_project(self):
+        self.client.force_login(self.regular_user)
+        response = self.client.post(
+            reverse("main:delete_project", kwargs={"project_id": self.project.id})
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Project.objects.filter(id=self.project.id).exists())
+
+    def test_guest_cannot_toggle_star(self):
+        response = self.client.post(
+            reverse("main:toggle_star", kwargs={"project_id": self.project.id})
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login/", response.url)
+        self.assertEqual(self.project.starred_by.count(), 0)
+
+    def test_authenticated_user_can_star_and_unstar(self):
+        self.client.force_login(self.regular_user)
+        url = reverse("main:toggle_star", kwargs={"project_id": self.project.id})
+
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("main:show_projects"))
+        self.assertIn(self.regular_user, self.project.starred_by.all())
+        self.assertEqual(self.project.starred_by.count(), 1)
+
+        response2 = self.client.post(url)
+        self.assertEqual(response2.status_code, 302)
+        self.assertRedirects(response2, reverse("main:show_projects"))
+        self.assertNotIn(self.regular_user, self.project.starred_by.all())
+        self.assertEqual(self.project.starred_by.count(), 0)
+
+    def test_projects_page_star_and_buttons_visibility(self):
+        response = self.client.get(reverse("main:show_projects"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "button-star")
+        self.assertNotContains(response, "project-add-button")
+        self.assertNotContains(response, 'popovertarget="delete-project-')
+
+        self.client.force_login(self.regular_user)
+        response = self.client.get(reverse("main:show_projects"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "button-star")
+        self.assertNotContains(response, "project-add-button")
+        self.assertNotContains(response, 'popovertarget="delete-project-')
+
+        self.client.force_login(self.superuser)
+        response = self.client.get(reverse("main:show_projects"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "button-star")
+        self.assertContains(response, "project-add-button")
+        self.assertContains(response, f"delete-project-{self.project.id}")
+
+    def test_get_projects_json_includes_natural_keys(self):
+        self.project.starred_by.add(self.regular_user)
+        response = self.client.get(reverse("main:get_projects_json"))
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content.decode("utf-8"))
+        target = next(item for item in data if item["pk"] == str(self.project.id))
+        self.assertEqual(target["fields"]["starred_by"], [[self.regular_user.username]])

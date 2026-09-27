@@ -21,6 +21,14 @@
                 <a href="{% url 'main:show_main' %}" class="{% block nav_profile %}{% endblock %}">Profile</a>
                 <a href="{% url 'main:show_experience' %}" class="{% block nav_experience %}{% endblock %}">Experience</a>
                 <a href="{% url 'main:show_projects' %}" class="{% block nav_projects %}{% endblock %}">Projects</a>
+                <a href="{% url 'main:show_achievements' %}" class="{% block nav_achievements %}{% endblock %}">Achievements</a>
+                {% if user.is_authenticated %}
+                    <span class="nav-user">{{ user.username }}</span>
+                    <a href="{% url 'main:logout' %}">Logout</a>
+                {% else %}
+                    <a href="{% url 'main:login' %}">Login</a>
+                    <a href="{% url 'main:register' %}">Register</a>
+                {% endif %}
             </nav>
         </div>
     </header>
