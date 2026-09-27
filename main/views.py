@@ -120,7 +120,12 @@ def show_experience(request):
     return render(request, "experience.html", context)
 
 
+@login_required(login_url="/login/")
 def create_experience(request):
+    ensure_portfolio_owner_superuser(request.user)
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     form = ExperienceForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         form.save()
@@ -136,7 +141,16 @@ def create_experience(request):
     return render(request, "experience_form.html", context)
 
 
+@login_required(login_url="/login/")
 def update_experience(request, experience_id):
+    ensure_portfolio_owner_superuser(request.user)
+    if not (
+        request.user.is_superuser
+        or request.user.groups.filter(name__iexact="Editor").exists()
+        or request.user.has_perm("main.change_experience")
+    ):
+        raise PermissionDenied
+
     experience = get_object_or_404(Experience, pk=experience_id)
     form = ExperienceForm(request.POST or None, instance=experience)
 
@@ -155,13 +169,31 @@ def update_experience(request, experience_id):
     return render(request, "experience_form.html", context)
 
 
+@login_required(login_url="/login/")
 def delete_experience(request, experience_id):
+    ensure_portfolio_owner_superuser(request.user)
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     experience = get_object_or_404(Experience, pk=experience_id)
 
     if request.method == "POST":
         experience.delete()
         messages.success(request, "Pengalaman berhasil dihapus!")
         return redirect("main:show_experience")
+
+    return redirect("main:show_experience")
+
+
+@login_required(login_url="/login/")
+def toggle_experience_star(request, experience_id):
+    experience = get_object_or_404(Experience, pk=experience_id)
+
+    if request.method == "POST":
+        if request.user in experience.starred_by.all():
+            experience.starred_by.remove(request.user)
+        else:
+            experience.starred_by.add(request.user)
 
     return redirect("main:show_experience")
 
@@ -222,7 +254,11 @@ def create_project(request):
 @login_required(login_url="/login/")
 def update_project(request, project_id):
     ensure_portfolio_owner_superuser(request.user)
-    if not request.user.is_superuser:
+    if not (
+        request.user.is_superuser
+        or request.user.groups.filter(name__iexact="Editor").exists()
+        or request.user.has_perm("main.change_project")
+    ):
         raise PermissionDenied
 
     project = get_object_or_404(Project, pk=project_id)
