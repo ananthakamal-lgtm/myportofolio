@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=2.5">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=2.6">
     <style>
     /* Full-Width 3-Section Header Architecture */
     .site-header {
@@ -174,6 +174,7 @@
     {% endblock meta %}
 </head>
 <body>
+    {% block header %}
     <!-- Site Navigation: 3-Section Header -->
     <header class="site-header">
         <div class="container header-container">
@@ -202,7 +203,9 @@
             </div>
         </div>
     </header>
+    {% endblock header %}
 
+    {% block messages %}
     {% if messages %}
         <div class="container messages-container">
             {% for message in messages %}
@@ -212,15 +215,18 @@
             {% endfor %}
         </div>
     {% endif %}
+    {% endblock messages %}
 
     {% block content %}
     {% endblock content %}
 
+    {% block footer %}
     <!-- Site Footer -->
     <footer class="site-footer">
         <div class="container">
             <p>&copy; 2026 {{ name }}. Fakultas Ilmu Komputer, Universitas Indonesia.</p>
         </div>
     </footer>
+    {% endblock footer %}
 </body>
 </html>
