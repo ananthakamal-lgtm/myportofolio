@@ -255,24 +255,18 @@ class ProjectTest(TestCase):
         response = self.client.get(reverse("main:show_projects"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, self.project.title)
-        self.assertContains(response, self.project.description)
-        self.assertContains(response, self.project.category)
-        self.assertContains(response, "Python")
-        self.assertContains(response, "YOLO")
-        self.assertContains(response, "Gradio")
-        self.assertContains(response, self.project.demo_url)
-        self.assertContains(response, self.project.repo_url)
         self.assertContains(response, f'href="{reverse("main:show_main")}"')
         self.assertContains(response, f'href="{reverse("main:show_experience")}"')
+        self.assertContains(response, 'id="loading"')
+        self.assertContains(response, 'id="error"')
+        self.assertContains(response, 'id="empty"')
+        self.assertContains(response, 'id="grid"')
 
     def test_empty_projects_page(self):
-        Project.objects.all().delete()
         response = self.client.get(reverse("main:show_projects"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Belum ada proyek yang ditambahkan.")
-        self.assertNotContains(response, self.project.title)
+        self.assertContains(response, "Belum ada proyek yang ditambahkan atau ditemukan.")
 
     def test_create_project_get(self):
         self.client.force_login(self.superuser)
@@ -380,14 +374,13 @@ class ProjectTest(TestCase):
         response = self.client.get(reverse("main:show_projects") + "?title=Manga")
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, self.project.title)
+        self.assertContains(response, 'value="Manga"')
 
     def test_projects_search_non_matching(self):
         response = self.client.get(reverse("main:show_projects") + "?title=NonExistentProject123")
 
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, self.project.title)
-        self.assertContains(response, "Tidak ada proyek dengan nama tersebut.")
+        self.assertContains(response, 'value="NonExistentProject123"')
 
     def test_get_projects_json_endpoint(self):
         response = self.client.get(reverse("main:get_projects_json"))
@@ -575,23 +568,20 @@ class AuthorizationAndStarTest(TestCase):
     def test_projects_page_star_and_buttons_visibility(self):
         response = self.client.get(reverse("main:show_projects"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "button-star")
         self.assertNotContains(response, "project-add-button")
-        self.assertNotContains(response, 'popovertarget="delete-project-')
+        self.assertNotContains(response, 'id="add-project-modal"')
 
         self.client.force_login(self.regular_user)
         response = self.client.get(reverse("main:show_projects"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "button-star")
         self.assertNotContains(response, "project-add-button")
-        self.assertNotContains(response, 'popovertarget="delete-project-')
+        self.assertNotContains(response, 'id="add-project-modal"')
 
         self.client.force_login(self.superuser)
         response = self.client.get(reverse("main:show_projects"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "button-star")
         self.assertContains(response, "project-add-button")
-        self.assertContains(response, f"delete-project-{self.project.id}")
+        self.assertContains(response, 'id="add-project-modal"')
 
     def test_get_projects_json_includes_natural_keys(self):
         self.project.starred_by.add(self.regular_user)
@@ -837,3 +827,138 @@ class ExperienceAuthorizationAndStarTest(TestCase):
             self.assertIn("category", item["fields"])
             self.assertIn("description", item["fields"])
             self.assertNotIn("password", item["fields"])
+
+
+class Tutorial5AJAXAndXSSTest(TestCase):
+    def setUp(self):
+        self.regular_user = User.objects.create_user(
+            username="regular_tut5",
+            password="RegularPassword123!",
+        )
+        self.superuser = User.objects.create_superuser(
+            username="super_tut5",
+            password="SuperPassword123!",
+            email="super_tut5@example.com",
+        )
+        self.project = Project.objects.create(
+            title="Interactive Portfolio",
+            category="Web Development",
+            description="A modern portfolio built with Django and AJAX.",
+            year=2026,
+            tech_stack="Django, JavaScript, HTML, CSS",
+            demo_url="https://example.com/demo",
+            repo_url="https://github.com/example/repo",
+        )
+
+    def test_create_project_ajax_guest_forbidden(self):
+        response = self.client.post(reverse("main:create_project_ajax"), {
+            "title": "Guest Project",
+            "category": "Web Dev",
+            "description": "Attempting to create",
+            "year": 2026,
+            "tech_stack": "Django",
+        })
+        self.assertEqual(response.status_code, 403)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertIn("message", data)
+        self.assertEqual(data["message"], "Hanya pemilik portofolio yang dapat menambahkan proyek.")
+
+    def test_create_project_ajax_regular_user_forbidden(self):
+        self.client.force_login(self.regular_user)
+        response = self.client.post(reverse("main:create_project_ajax"), {
+            "title": "Regular User Project",
+            "category": "Web Dev",
+            "description": "Attempting to create",
+            "year": 2026,
+            "tech_stack": "Django",
+        })
+        self.assertEqual(response.status_code, 403)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertIn("message", data)
+        self.assertEqual(data["message"], "Hanya pemilik portofolio yang dapat menambahkan proyek.")
+
+    def test_create_project_ajax_superuser_success(self):
+        self.client.force_login(self.superuser)
+        response = self.client.post(reverse("main:create_project_ajax"), {
+            "title": "New AJAX Project",
+            "category": "Machine Learning",
+            "description": "Project created asynchronously.",
+            "year": 2026,
+            "tech_stack": "Python, Django, JS",
+            "demo_url": "https://example.com/ajax-demo",
+            "repo_url": "https://github.com/example/ajax-repo",
+        })
+        self.assertEqual(response.status_code, 201)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertIn("pk", data)
+        self.assertEqual(data["message"], "Proyek berhasil ditambahkan.")
+        self.assertTrue(Project.objects.filter(title="New AJAX Project").exists())
+
+    def test_create_project_ajax_invalid(self):
+        self.client.force_login(self.superuser)
+        response = self.client.post(reverse("main:create_project_ajax"), {
+            "title": "",
+            "category": "Web Dev",
+        })
+        self.assertEqual(response.status_code, 400)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertIn("errors", data)
+        self.assertIn("title", data["errors"])
+
+    def test_create_project_ajax_method_not_allowed(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get(reverse("main:create_project_ajax"))
+        self.assertEqual(response.status_code, 405)
+
+    def test_project_form_clean_title_xss_empty(self):
+        form = ProjectForm(data={
+            "title": '<img src="x" onerror="alert(1)">',
+            "category": "Security",
+            "description": "Testing XSS",
+            "year": 2026,
+            "tech_stack": "Security",
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn("title", form.errors)
+        self.assertIn("Nama proyek tidak boleh hanya berisi tag HTML.", form.errors["title"])
+
+    def test_project_form_clean_fields_strip_tags(self):
+        form = ProjectForm(data={
+            "title": 'Safe Title <b>Bold</b>',
+            "category": 'Web <script>alert("hack")</script>',
+            "description": 'Description with <i>italics</i> and <script>bad()</script>',
+            "year": 2026,
+            "tech_stack": 'Python, <style>body{}</style>Django',
+        })
+        self.assertTrue(form.is_valid())
+        cleaned = form.cleaned_data
+        self.assertEqual(cleaned["title"], "Safe Title Bold")
+        self.assertEqual(cleaned["category"], "Web alert(\"hack\")")
+        self.assertEqual(cleaned["description"], "Description with italics and bad()")
+        self.assertEqual(cleaned["tech_stack"], "Python, body{}Django")
+
+    def test_get_projects_json_star_info(self):
+        self.project.starred_by.add(self.regular_user)
+
+        # Unauthenticated: is_starred is False
+        res_guest = self.client.get(reverse("main:get_projects_json"))
+        self.assertEqual(res_guest.status_code, 200)
+        data_guest = json.loads(res_guest.content.decode("utf-8"))
+        proj_guest = next(p for p in data_guest if p["pk"] == str(self.project.id))
+        self.assertEqual(proj_guest["fields"]["star_count"], 1)
+        self.assertFalse(proj_guest["fields"]["is_starred"])
+        self.assertIn(self.regular_user.username, proj_guest["fields"]["starred_by_names"])
+
+        # Authenticated as regular user: is_starred is True
+        self.client.force_login(self.regular_user)
+        res_user = self.client.get(reverse("main:get_projects_json"))
+        data_user = json.loads(res_user.content.decode("utf-8"))
+        proj_user = next(p for p in data_user if p["pk"] == str(self.project.id))
+        self.assertTrue(proj_user["fields"]["is_starred"])
+
+        # Authenticated as superuser: is_starred is False
+        self.client.force_login(self.superuser)
+        res_super = self.client.get(reverse("main:get_projects_json"))
+        data_super = json.loads(res_super.content.decode("utf-8"))
+        proj_super = next(p for p in data_super if p["pk"] == str(self.project.id))
+        self.assertFalse(proj_super["fields"]["is_starred"])
