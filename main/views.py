@@ -1,12 +1,12 @@
-﻿import datetime
+import datetime
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
-from django.core import serializers
 from django.core.exceptions import PermissionDenied
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 
 from main.forms import ExperienceForm, ProjectForm
@@ -92,33 +92,74 @@ def logout_user(request):
     return response
 
 
+def serialize_experience(experience, user):
+    starred_users = list(experience.starred_by.all())
+    is_starred = user.is_authenticated and any(u.pk == user.pk for u in starred_users)
+
+    return {
+        "pk": str(experience.id),
+        "fields": {
+            "title": experience.title,
+            "category": experience.category,
+            "category_display": experience.get_category_display(),
+            "description": experience.description,
+            "thumbnail": experience.thumbnail or "",
+            "started_at": experience.started_at.isoformat() if experience.started_at else None,
+            "ended_at": experience.ended_at.isoformat() if experience.ended_at else None,
+            "is_ongoing": experience.is_ongoing,
+            "star_count": len(starred_users),
+            "is_starred": is_starred,
+            "starred_by_names": ", ".join(u.username for u in starred_users),
+        },
+    }
+
+
 def get_experience_json(request):
     title_query = request.GET.get("title", "").strip()
-    experiences = Experience.objects.all()
+    experiences = Experience.objects.prefetch_related("starred_by").order_by("-started_at")
 
     if title_query:
         experiences = experiences.filter(title__icontains=title_query)
 
-    experiences_json = serializers.serialize("json", experiences)
-    return HttpResponse(experiences_json, content_type="application/json")
+    data = [serialize_experience(exp, request.user) for exp in experiences]
+    return JsonResponse(data, safe=False)
 
 
+@ensure_csrf_cookie
 def show_experience(request):
-    json_response = get_experience_json(request)
-
-    experiences = serializers.deserialize(
-        "json",
-        json_response.content.decode("utf-8"),
-    )
-    experiences = [exp.object for exp in experiences]
+    ensure_portfolio_owner_superuser(request.user)
     title_query = request.GET.get("title", "").strip()
 
     context = {
         "name": "Anantha",
-        "experience_list": experiences,
         "title_query": title_query,
+        "form": ExperienceForm(),
     }
     return render(request, "experience.html", context)
+
+
+@require_POST
+def create_experience_ajax(request):
+    ensure_portfolio_owner_superuser(request.user)
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {"message": "Hanya pemilik portofolio yang dapat menambahkan pengalaman."},
+            status=403,
+        )
+
+    form = ExperienceForm(request.POST)
+    if form.is_valid():
+        experience = form.save()
+        return JsonResponse(
+            {
+                "message": "Pengalaman baru berhasil ditambahkan.",
+                "pk": str(experience.id),
+                "data": serialize_experience(experience, request.user),
+            },
+            status=201,
+        )
+
+    return JsonResponse({"errors": form.errors.get_json_data()}, status=400)
 
 
 @login_required(login_url="/login/")
@@ -191,10 +232,14 @@ def toggle_experience_star(request, experience_id):
     experience = get_object_or_404(Experience, pk=experience_id)
 
     if request.method == "POST":
-        if request.user in experience.starred_by.all():
+        if experience.starred_by.filter(pk=request.user.pk).exists():
             experience.starred_by.remove(request.user)
         else:
             experience.starred_by.add(request.user)
+
+        if "application/json" in request.headers.get("Accept", ""):
+            experience = Experience.objects.prefetch_related("starred_by").get(pk=experience.pk)
+            return JsonResponse(serialize_experience(experience, request.user))
 
     return redirect("main:show_experience")
 
@@ -206,7 +251,6 @@ def get_projects_json(request):
     if title_query:
         projects = projects.filter(title__icontains=title_query)
 
-    # Konstruksi data JSON secara manual agar bisa menyisipkan logika Star
     data = []
     for project in projects:
         starred_users = project.starred_by.all()
