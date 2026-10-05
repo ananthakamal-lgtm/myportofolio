@@ -1,53 +1,33 @@
-﻿<div class="experience-actions">
-    {% if user.is_superuser or is_editor %}
-    <a href="{% url 'main:update_experience' experience.id %}" class="button button-secondary button-sm" aria-label="Edit {{ experience.title }}">
-        Edit
-    </a>
-    {% endif %}
-    {% if user.is_superuser %}
-    <button type="button"
-            class="button button-danger button-sm"
-            popovertarget="delete-experience-{{ experience.id }}"
-            aria-label="Hapus {{ experience.title }}"
-            title="Hapus pengalaman">
-        Hapus
-    </button>
-    {% endif %}
-</div>
-{% if user.is_superuser %}
-<div id="delete-experience-{{ experience.id }}"
+<div id="delete-experience-modal"
      class="project-delete-modal"
      popover="auto"
-     aria-labelledby="delete-experience-title-{{ experience.id }}">
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="delete-experience-modal-title">
     <button type="button"
             class="project-delete-modal__backdrop"
-            popovertarget="delete-experience-{{ experience.id }}"
+            popovertarget="delete-experience-modal"
             popovertargetaction="hide"
             aria-label="Tutup konfirmasi hapus"></button>
     <div class="project-delete-modal__content">
         <button type="button"
                 class="project-delete-modal__close"
-                popovertarget="delete-experience-{{ experience.id }}"
+                popovertarget="delete-experience-modal"
                 popovertargetaction="hide"
-                aria-label="Tutup konfirmasi hapus">
-            &times;
-        </button>
-        <h2 id="delete-experience-title-{{ experience.id }}">Hapus Pengalaman?</h2>
+                aria-label="Tutup konfirmasi hapus">&times;</button>
+        <h2 id="delete-experience-modal-title">Hapus Pengalaman?</h2>
         <p>
-            Apakah Anda yakin ingin menghapus <strong>{{ experience.title }}</strong>?
+            Apakah Anda yakin ingin menghapus <strong id="delete-experience-name"></strong>?
         </p>
         <div class="project-delete-modal__actions">
             <button type="button"
                     class="button button-secondary"
-                    popovertarget="delete-experience-{{ experience.id }}"
-                    popovertargetaction="hide">
-                Batal
-            </button>
-            <form method="post" action="{% url 'main:delete_experience' experience.id %}">
+                    popovertarget="delete-experience-modal"
+                    popovertargetaction="hide">Batal</button>
+            <form id="delete-experience-form" method="post" action="">
                 {% csrf_token %}
                 <button type="submit" class="button button-danger">Ya, Hapus</button>
             </form>
         </div>
     </div>
 </div>
-{% endif %}
