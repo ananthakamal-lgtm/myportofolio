@@ -209,3 +209,98 @@ Pengerjaan Individual Assignment 4 ini memanfaatkan generative AI sebagai asiste
   1. **Penanganan Lingkungan Windows & File System:** Mahasiswa mengidentifikasi adanya anomali penulisan file kosong pada lingkungan sistem operasi lokal dan memastikan setiap file template, migrasi, dan konfigurasi tersimpan dengan benar menggunakan PowerShell UTF-8 encoding.
   2. **Verifikasi Keanggotaan Grup Editor:** Mahasiswa memvalidasi secara langsung bahwa pemeriksaan grup menggunakan case-insensitive `name__iexact="Editor"` agar tangguh terhadap variasi penamaan di Django Admin.
   3. **Verifikasi Manual dan Kontrol Git:** Mahasiswa menguji fungsionalitas aplikasi di peramban, memastikan status HTTP 403 Forbidden muncul tepat saat pengguna yang tidak berhak mencoba mengakses URL edit/tambah/hapus secara langsung, serta mengontrol penuh riwayat commit git.
+
+---
+
+### Tugas 5: Interaktivitas Web dengan JavaScript, AJAX, Popover API, dan Perlindungan XSS
+
+Pada Individual Assignment 5 ini, konsep interaktivitas modern, pemanggilan data asinkronus (AJAX), pengelolaan popover modal, dan perlindungan keamanan terhadap serangan *Cross-Site Scripting* (XSS) yang telah dipelajari pada Tutorial 05 diimplementasikan secara menyeluruh (*end-to-end*) pada entitas portofolio **Experience** (yang berasal dari Tugas 3 dan Tugas 4).
+
+#### 1. Fungsionalitas & Arsitektur yang Diimplementasikan
+- **Daftar Pengalaman Asinkronus (AJAX & State Containers):**
+  - Halaman `show_experience` (`templates/experience.html`) direfaktor sehingga hanya merender kerangka halaman (*skeleton shell*).
+  - Data pengalaman dimuat secara asinkronus dari endpoint `/api/experience/` menggunakan `fetch()`.
+  - Terdapat 4 kontainer status visual yang terisolasi dengan baik:
+    - `#experience-loading`: Spinner animasi pemuatan data.
+    - `#experience-error`: Notifikasi kegagalan jaringan/server beserta tombol *Coba lagi*.
+    - `#experience-empty`: Penanganan status data kosong yang dinamis (pesan berbeda saat tidak ada data vs saat pencarian tidak menemukan hasil).
+    - `#experience-grid`: Grid kartu pengalaman yang dibangun secara dinamis melalui JavaScript DOM manipulation.
+- **Serialisasi Data Manual & Informasi Star Tugas 4:**
+  - Endpoint `get_experience_json` (`main/views.py`) menyusun payload JSON secara manual dengan `JsonResponse` dan optimasi query `prefetch_related("starred_by")`.
+  - Menyertakan metadata relasi `starred_by`: jumlah total star (`star_count`), status bintang pengguna saat ini (`is_starred`), dan daftar nama pemberi bintang (`starred_by_names`).
+- **Pencarian Real-Time dengan Debouncing (300ms):**
+  - Mengimplementasikan helper modular `debounce(callback, 300)` pada input pencarian judul/posisi pengalaman.
+  - Mengeliminasi request berulang ke server saat pengguna masih mengetik, menyinkronkan query ke URL browser (`history.replaceState`), dan mendukung pembatalan request lama yang belum selesai menggunakan `AbortController`.
+- **Penambahan Pengalaman melalui Modal Popover & Fetch API:**
+  - Modal form terpadu `templates/components/experience_form_modal.html` menggunakan HTML Popover API (`popover="auto"`), hanya dirender untuk pengguna berstatus `is_superuser`.
+  - Pengiriman form ditangani oleh JavaScript melalui Fetch API ke endpoint `create_experience_ajax` dengan metode `POST` dan header `X-CSRFToken` yang diambil dari cookie `csrftoken`.
+  - Mengembalikan status HTTP yang semantik: `201 Created` untuk input valid, `400 Bad Request` beserta payload `form.errors.get_json_data()` untuk kesalahan validasi form, dan `403 Forbidden` jika pengguna bukan superuser.
+  - Setelah data berhasil disimpan, form di-reset, modal tertutup, feedback instan ditampilkan, dan daftar kartu diperbarui tanpa reload halaman.
+- **Sistem Notifikasi Toast Terpadu:**
+  - Menggunakan fungsi global `showToast(title, message, type)` (`static/js/toast.js` & `templates/components/toast.html`) untuk memberikan umpan balik visual instan pada aksi penambahan data maupun error validasi.
+- **Fitur Interaktif Star melalui AJAX:**
+  - Endpoint `toggle_experience_star` mendukung negosiasi konten (`Accept: application/json`). Ketika tombol star ditekan, JavaScript mengirimkan request POST secara asinkronus dan memperbarui elemen tombol serta jumlah bintang secara langsung tanpa reload halaman.
+- **Perlindungan Menyeluruh Terhadap Cross-Site Scripting (XSS):**
+  - **Sisi Klien (*Client-Side Escaping*):** Seluruh data teks dinamis yang disuntikkan ke dalam template literal HTML dilewatkan melalui fungsi sanitasi `escapeHtml()` (`static/js/utils.js`). Atribut tautan dan gambar divalidasi dengan `safeUrl()` untuk mencegah serangan berbasis URL berbahaya (`javascript:` scheme). Judul pada konfirmasi hapus disisipkan aman melalui `textContent`.
+  - **Sisi Server (*Server-Side Sanitization*):** Pada `main/forms.py`, `ExperienceForm` menerapkan metode pembersihan `clean_title`, `clean_category`, dan `clean_description` menggunakan fungsi `strip_tags` dari Django. Jika judul atau deskripsi hanya berisi tag HTML kosong (seperti `<script></script>` atau `<img src="x" onerror="alert(1)">`), form menolaknya dengan `ValidationError`.
+
+---
+
+#### 2. Jawaban Pertanyaan Reflektif
+
+1. **Jelaskan apa itu *debouncing* dan mengapa teknik ini penting diterapkan pada fitur pencarian yang menggunakan AJAX!**
+   - **Pengertian *Debouncing*:**
+     *Debouncing* adalah teknik optimasi pemrograman yang menunda eksekusi suatu fungsi hingga periode waktu tenang tertentu (*idle delay*) tercapai setelah pemicuan terakhir. Jika event baru terjadi sebelum interval waktu tersebut berakhir, timer penghitungan mundur sebelumnya dibatalkan (`clearTimeout`) dan dihitung ulang dari awal. Fungsi target baru benar-benar dijalankan ketika pengguna berhenti memicu event selama durasi delay yang ditentukan (misalnya 300 milidetik).
+   - **Urgensi Penerapannya pada Fitur Pencarian AJAX:**
+     - **Mencegah Banjir Permintaan Jaringan (*Preventing Request Flooding*):** Tanpa debouncing, setiap kali pengguna menekan satu tombol keyboard (*event* `input`), browser akan langsung mengirimkan satu HTTP GET request ke server. Sebagai contoh, mengetik kata "Software" (8 karakter) akan memicu 8 request jaringan berturut-turut. Dengan debouncing, hanya 1 request yang dikirim ketika pengguna selesai mengetik kata tersebut.
+     - **Mengurangi Beban Komputasi Server dan Basis Data:** Setiap request AJAX pencarian memicu eksekusi query filter SQL (`icontains`), alokasi memori ORM, dan serialisasi JSON di server. Debouncing memangkas beban kerja database dan CPU backend secara drastis.
+     - **Menghindari Kondisi Perlombaan (*Race Conditions*):** Permintaan HTTP yang dikirim lebih awal bisa jadi tiba atau selesai diproses lebih lambat daripada permintaan yang dikirim belakangan akibat variasi latensi jaringan. Tanpa debouncing, hasil pencarian usang (*stale response*) dari ketikan awal dapat menimpa hasil pencarian terbaru di layar pengguna.
+     - **Efisiensi Bandwidth dan Baterai Klien:** Mengurangi lalu lintas data internet yang tidak perlu dan menghemat daya komputasi perangkat klien, khususnya pengguna perangkat mobile.
+
+2. **Jelaskan fungsi dari penggunaan `await` ketika kita menggunakan `fetch()`! Apa yang akan terjadi jika kita tidak menggunakan `await`?**
+   - **Fungsi Penggunaan `await`:**
+     - Fungsi `fetch()` secara inheren bersifat asinkronus dan mengembalikan sebuah objek `Promise` yang merepresentasikan operasi jaringan yang sedang berjalan.
+     - Kata kunci `await` (yang digunakan di dalam fungsi `async`) berfungsi untuk menghentikan sementara (*pause*) eksekusi fungsi tersebut secara non-blocking hingga `Promise` tersebut diselesaikan (*resolved*) dengan sukses atau ditolak (*rejected*) dengan galat.
+     - Melalui `await`, objek `Response` HTTP hasil resolusi diekstrak langsung ke dalam variabel. Pola yang sama berlaku saat memanggil `await response.json()`, di mana `await` menunggu pembacaan aliran data biner (*data stream body*) selesai didekodekan menjadi objek JavaScript murni.
+     - Hal ini memungkinkan penulisan kode asinkronus dengan gaya sekuensial yang bersih, linear, mudah dipahami, serta mendukung penanganan galat terpadu menggunakan blok `try ... catch`.
+   - **Konsekuensi jika Tidak Menggunakan `await`:**
+     - Variabel penerima tidak akan berisi objek data `Response`, melainkan objek `Promise <pending>` yang statusnya belum selesai.
+     - Jika kode mencoba membaca properti respons secara langsung (misalnya `const res = fetch(url); if (res.ok) ...`), ekspresi tersebut akan menghasilkan perilaku tidak terduga karena properti `ok` pada Promise bernilai `undefined`.
+     - Percobaan memanggil metode pada respons seperti `res.json()` tanpa await akan memicu kegagalan runtime (`TypeError: res.json is not a function`).
+     - Alur eksekusi JavaScript akan terus meloncat ke baris kode di bawahnya sebelum data dari server diterima, mengakibatkan manipulasi DOM berjalan dengan data kosong atau memicu crash pada aplikasi.
+     - Tanpa `await`, pengembang harus kembali ke pola lama menggunakan *chaining callback* `.then(response => response.json()).then(data => ...).catch(...)` yang rentan terhadap kompleksitas piramida callback (*callback hell*).
+
+3. **Jelaskan apa itu serangan XSS (*Cross-Site Scripting*) dan mengapa data yang ditampilkan melalui AJAX/JavaScript lebih rentan terhadap serangan ini daripada data yang ditampilkan langsung melalui *template* Django!**
+   - **Pengertian Serangan XSS:**
+     *Cross-Site Scripting* (XSS) adalah kerentanan keamanan web di mana penyerang berhasil menyuntikkan skrip berbahaya (biasanya JavaScript) ke dalam aplikasi web yang sah. Ketika pengguna lain mengunjungi halaman tersebut, peramban mengeksekusi skrip tersebut dalam konteks sesi dan domain korban. Dampak serangan XSS mencakup pembajakan sesi pengguna (*session hijacking* melalui pencurian cookie), pencurian kredensial, modifikasi tampilan halaman (*defacement*), *keylogging*, hingga eksekusi aksi ilegal tanpa sepengetahuan korban.
+   - **Mengapa Data via AJAX/JavaScript Jauh Lebih Rentan Dibanding Template Django:**
+     - **Perlindungan Otomatis pada Django Template Engine (*Auto-Escaping*):**
+       Template engine bawaan Django secara default menerapkan mekanisme *auto-escaping* pada setiap variabel template `{{ variable }}`. Karakter-karakter khusus HTML yang berpotensi mengeksekusi kode—seperti `<` diubah menjadi `&lt;`, `>` menjadi `&gt;`, `&` menjadi `&amp;`, `"` menjadi `&quot;`, dan `'` menjadi `&#39;`—dinetralkan menjadi teks murni sebelum dikirim ke peramban. Kecuali pengembang secara sengaja menggunakan filter berisiko seperti `|safe` atau tag `{% autoescape off %}`, template Django secara bawaan sangat aman dari XSS.
+     - **Penyuntikan Dinamis Berisiko pada JavaScript (`innerHTML`):**
+       Pada arsitektur AJAX, peramban menerima data dalam format JSON mentah tanpa pembersihan HTML bawaan. Untuk merender kartu atau elemen antarmuka, pengembang umumnya menyusun *template literals* dan menyuntikkannya ke dalam DOM melalui properti `element.innerHTML`.
+       Properti `innerHTML` menginstruksikan mesin peramban untuk mem-parsing dan mengeksekusi seluruh tag HTML yang ada di dalam string tersebut. Jika terdapat data masukan pengguna yang mengandung payload berbahaya—misalnya `<img src="x" onerror="alert('XSS')">` atau `<svg onload="...">`—peramban akan langsung mengeksekusi script tersebut saat elemen disisipkan ke DOM.
+     - **Strategi Mitigasi Berlapis (*Defense-in-Depth*):**
+       Karena JavaScript tidak memiliki auto-escaping bawaan saat memanipulasi `innerHTML`, aplikasi AJAX wajib menerapkan dua lapis proteksi:
+       1. *Client-side Escaping:* Mengubah seluruh karakter sensitif menjadi entitas teks menggunakan fungsi utilitas seperti `escapeHtml()` atau menggunakan properti aman seperti `textContent` dan `document.createTextNode`.
+       2. *Server-side Sanitization:* Memvalidasi dan membersihkan tag HTML menggunakan `strip_tags` pada method `clean_<field>` di `ModelForm` sebelum data disimpan ke basis data.
+
+---
+
+### AI Disclosure (Tugas 5)
+
+Pengerjaan Individual Assignment 5 ini memanfaatkan generative AI sebagai asisten pemrograman berpasangan (*pair programming*) dan validasi arsitektur interaktif dengan transparansi sebagai berikut:
+- **Tools yang Digunakan:** Gemini (Antigravity Assistant) & Claude.
+- **Strategi Prompting:**
+  1. **Pendekatan Arsitektur Bersih & Modular (*Shared Utilities First*):** Meminta asisten merancang berkas utilitas bersama `static/js/utils.js` yang menyediakan fungsi reusable (`escapeHtml`, `safeUrl`, `getCookie`, `debounce`, `extractErrorMessages`) sehingga logika frontend tidak diduplikasi di antara `projects.html` dan `experience.html`.
+  2. **Konsistensi Desain & Kontinuitas Tugas:** Mempertahankan palet warna, tipografi (*Space Grotesk*), dan estetika Editorial/Neo-Brutalist dari tugas-tugas sebelumnya dengan menyelaraskan kelas styling modal, animasi spinner, kontainer status, serta badge kategori.
+  3. **Pengujian Menyeluruh Berbasis TDD (*Test-Driven Development*):** Menyusun test suite otomatis komprehensif pada `main/tests.py` yang menguji seluruh matriks hak akses endpoint AJAX (`create_experience_ajax` dengan kode status 201, 400, 403, 405), endpoint JSON star, serta proteksi sanitasi XSS (total 81 test cases, seluruhnya berstatus `OK`).
+- **Aspek Spesifik yang Dibantu:**
+  1. **Refaktor Template & AJAX DOM Rendering:** Mengubah `experience.html` menjadi render kerangka murni dan mengonstruksi komponen kartu dinamis dengan JavaScript native, mencakup state loading, error, empty, dan grid.
+  2. **Perancangan Endpoint AJAX & Serialisasi JSON:** Mengembangkan fungsi view `create_experience_ajax`, `serialize_experience`, dan memperbarui `get_experience_json` serta `toggle_experience_star` agar merespons JSON secara dinamis.
+  3. **Komponen Modal Form Popover:** Membuat `experience_form_modal.html` dan `experience_delete_modal.html` yang terintegrasi dengan HTML Popover API dan CSRF protection.
+  4. **Penyusunan 81 Kasus Uji Otomatis:** Mengadaptasi pengujian regresi dan menambahkan kelas uji `Tugas5ExperienceAJAXTest`.
+  5. **Analisis Pertanyaan Reflektif:** Berdiskusi secara mendalam mengenai konsep debouncing, mekanisme kerja `async/await`, serta analisis kerentanan XSS pada AJAX vs Django template.
+- **Keterbatasan AI & Validasi Mandiri oleh Mahasiswa:**
+  1. **Penanganan Isu File System & OneDrive Locking:** Mahasiswa mengidentifikasi bahwa penulisan berkas pada lingkungan Windows dengan sinkronisasi OneDrive aktif dapat memicu rollback berkas jika buffer stream tidak di-flush secara eksplisit. Mahasiswa memastikan setiap berkas disimpan dan dikunci ke disk menggunakan `os.fsync`.
+  2. **Pengecekan Karakteristik `strip_tags` Django:** Mahasiswa mendeteksi bahwa payload `<script>alert("XSS")</script>` meninggalkan teks `alert("XSS")` setelah tag dilucuti sehingga tidak kosong. Mahasiswa memvalidasi secara manual dengan payload void tag seperti `<img src="x" onerror="alert(1)">` agar penolakan validasi judul kosong terverifikasi dengan tepat.
+  3. **Verifikasi Keamanan Interaktif:** Mahasiswa melakukan verifikasi manual pada browser untuk memastikan bahwa payload XSS tidak tereksekusi dan bahwa hak akses non-superuser tertolak secara konsisten baik di level visual maupun level API backend.

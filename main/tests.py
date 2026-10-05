@@ -41,27 +41,36 @@ class MainTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "experience.html")
-        self.assertContains(response, self.experience.title)
-        self.assertContains(response, self.experience.description)
-        self.assertContains(response, "Part-Time")
-        self.assertContains(response, "Sedang berlangsung")
         self.assertContains(response, f'href="{reverse("main:show_main")}"')
         self.assertContains(response, f'href="{reverse("main:show_projects")}"')
+        self.assertContains(response, 'id="experience-loading"')
+        self.assertContains(response, 'id="experience-error"')
+        self.assertContains(response, 'id="experience-empty"')
+        self.assertContains(response, 'id="experience-grid"')
+
+        # Data diambil via endpoint JSON
+        data = self.client.get(reverse("main:get_experience_json")).json()
+        fields = data[0]["fields"]
+        self.assertEqual(fields["title"], self.experience.title)
+        self.assertEqual(fields["description"], self.experience.description)
+        self.assertEqual(fields["category_display"], "Part-Time")
+        self.assertTrue(fields["is_ongoing"])
 
     def test_empty_experience_page(self):
         Experience.objects.all().delete()
         response = self.client.get(reverse("main:show_experience"))
 
         self.assertContains(response, "Belum ada pengalaman yang ditambahkan.")
+        self.assertEqual(self.client.get(reverse("main:get_experience_json")).json(), [])
 
     def test_completed_experience(self):
         self.experience.ended_at = timezone.now()
         self.experience.save()
-        response = self.client.get(reverse("main:show_experience"))
+        data = self.client.get(reverse("main:get_experience_json")).json()
 
         self.assertFalse(self.experience.is_ongoing)
-        self.assertContains(response, "Selesai")
-        self.assertNotContains(response, "Sedang berlangsung")
+        self.assertFalse(data[0]["fields"]["is_ongoing"])
+        self.assertIsNotNone(data[0]["fields"]["ended_at"])
 
 
 class ExperienceCRUDTest(TestCase):
@@ -213,14 +222,13 @@ class ExperienceCRUDTest(TestCase):
         response = self.client.get(reverse("main:show_experience") + "?title=Software")
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, self.experience.title)
+        self.assertContains(response, 'value="Software"')
 
     def test_show_experience_search_non_matching(self):
         response = self.client.get(reverse("main:show_experience") + "?title=NotFoundTitle123")
 
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, self.experience.title)
-        self.assertContains(response, "Tidak ada pengalaman dengan kata kunci tersebut.")
+        self.assertContains(response, 'value="NotFoundTitle123"')
 
 
 class ProjectTest(TestCase):
@@ -784,37 +792,41 @@ class ExperienceAuthorizationAndStarTest(TestCase):
         # Guest
         res_guest = self.client.get(reverse("main:show_experience"))
         self.assertEqual(res_guest.status_code, 200)
-        self.assertNotContains(res_guest, "Tambah Pengalaman")
-        self.assertNotContains(res_guest, reverse("main:update_experience", kwargs={"experience_id": self.experience.id}))
-        self.assertNotContains(res_guest, f"delete-experience-{self.experience.id}")
-        self.assertContains(res_guest, "button-star")
+        self.assertNotContains(res_guest, "project-add-button")
+        self.assertNotContains(res_guest, 'id="add-experience-modal"')
+        self.assertContains(res_guest, 'data-is-authenticated="false"')
+        self.assertContains(res_guest, 'data-can-edit="false"')
+        self.assertContains(res_guest, 'data-can-delete="false"')
 
         # Regular user
         self.client.force_login(self.regular_user)
         res_regular = self.client.get(reverse("main:show_experience"))
         self.assertEqual(res_regular.status_code, 200)
-        self.assertNotContains(res_regular, "Tambah Pengalaman")
-        self.assertNotContains(res_regular, reverse("main:update_experience", kwargs={"experience_id": self.experience.id}))
-        self.assertNotContains(res_regular, f"delete-experience-{self.experience.id}")
-        self.assertContains(res_regular, "button-star")
+        self.assertNotContains(res_regular, "project-add-button")
+        self.assertNotContains(res_regular, 'id="add-experience-modal"')
+        self.assertContains(res_regular, 'data-is-authenticated="true"')
+        self.assertContains(res_regular, 'data-can-edit="false"')
+        self.assertContains(res_regular, 'data-can-delete="false"')
 
         # Editor
         self.client.force_login(self.editor_user)
         res_editor = self.client.get(reverse("main:show_experience"))
         self.assertEqual(res_editor.status_code, 200)
-        self.assertNotContains(res_editor, "Tambah Pengalaman")
-        self.assertContains(res_editor, reverse("main:update_experience", kwargs={"experience_id": self.experience.id}))
-        self.assertNotContains(res_editor, f"delete-experience-{self.experience.id}")
-        self.assertContains(res_editor, "button-star")
+        self.assertNotContains(res_editor, "project-add-button")
+        self.assertNotContains(res_editor, 'id="add-experience-modal"')
+        self.assertContains(res_editor, 'data-is-authenticated="true"')
+        self.assertContains(res_editor, 'data-can-edit="true"')
+        self.assertContains(res_editor, 'data-can-delete="false"')
 
         # Superuser
         self.client.force_login(self.superuser)
         res_super = self.client.get(reverse("main:show_experience"))
         self.assertEqual(res_super.status_code, 200)
-        self.assertContains(res_super, "Tambah Pengalaman")
-        self.assertContains(res_super, reverse("main:update_experience", kwargs={"experience_id": self.experience.id}))
-        self.assertContains(res_super, f"delete-experience-{self.experience.id}")
-        self.assertContains(res_super, "button-star")
+        self.assertContains(res_super, "project-add-button")
+        self.assertContains(res_super, 'id="add-experience-modal"')
+        self.assertContains(res_super, 'data-is-authenticated="true"')
+        self.assertContains(res_super, 'data-can-edit="true"')
+        self.assertContains(res_super, 'data-can-delete="true"')
 
     def test_get_experience_json_security(self):
         res = self.client.get(reverse("main:get_experience_json"))
@@ -962,3 +974,162 @@ class Tutorial5AJAXAndXSSTest(TestCase):
         data_super = json.loads(res_super.content.decode("utf-8"))
         proj_super = next(p for p in data_super if p["pk"] == str(self.project.id))
         self.assertFalse(proj_super["fields"]["is_starred"])
+
+
+class Tugas5ExperienceAJAXTest(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import Group
+        self.editor_group, _ = Group.objects.get_or_create(name="Editor")
+
+        self.regular_user = User.objects.create_user(
+            username="regular_tugas5",
+            password="RegularPassword123!",
+        )
+        self.editor_user = User.objects.create_user(
+            username="editor_tugas5",
+            password="EditorPassword123!",
+        )
+        self.editor_user.groups.add(self.editor_group)
+
+        self.superuser = User.objects.create_superuser(
+            username="super_tugas5",
+            password="SuperPassword123!",
+            email="super_tugas5@example.com",
+        )
+        self.experience = Experience.objects.create(
+            title="Software Engineering Intern",
+            category="internship",
+            description="Developing scalable backend services.",
+            thumbnail="https://example.com/logo.png",
+        )
+
+    def test_create_experience_ajax_guest_forbidden(self):
+        response = self.client.post(reverse("main:create_experience_ajax"), {
+            "title": "Guest Experience",
+            "category": "internship",
+            "description": "Attempting to create",
+        })
+        self.assertEqual(response.status_code, 403)
+        data = response.json()
+        self.assertIn("message", data)
+        self.assertEqual(data["message"], "Hanya pemilik portofolio yang dapat menambahkan pengalaman.")
+
+    def test_create_experience_ajax_regular_user_forbidden(self):
+        self.client.force_login(self.regular_user)
+        response = self.client.post(reverse("main:create_experience_ajax"), {
+            "title": "Regular Experience",
+            "category": "internship",
+            "description": "Attempting to create",
+        })
+        self.assertEqual(response.status_code, 403)
+        data = response.json()
+        self.assertIn("message", data)
+        self.assertEqual(data["message"], "Hanya pemilik portofolio yang dapat menambahkan pengalaman.")
+
+    def test_create_experience_ajax_editor_user_forbidden(self):
+        self.client.force_login(self.editor_user)
+        response = self.client.post(reverse("main:create_experience_ajax"), {
+            "title": "Editor Experience",
+            "category": "internship",
+            "description": "Editor cannot create",
+        })
+        self.assertEqual(response.status_code, 403)
+
+    def test_create_experience_ajax_superuser_success(self):
+        self.client.force_login(self.superuser)
+        response = self.client.post(reverse("main:create_experience_ajax"), {
+            "title": "AI Research Assistant",
+            "category": "research",
+            "description": "Working on NLP and transformers.",
+            "thumbnail": "https://example.com/ai.png",
+        })
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertIn("pk", data)
+        self.assertEqual(data["message"], "Pengalaman baru berhasil ditambahkan.")
+        self.assertTrue(Experience.objects.filter(title="AI Research Assistant").exists())
+
+    def test_create_experience_ajax_invalid(self):
+        self.client.force_login(self.superuser)
+        response = self.client.post(reverse("main:create_experience_ajax"), {
+            "title": "",
+            "category": "internship",
+            "description": "",
+        })
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertIn("errors", data)
+        self.assertIn("title", data["errors"])
+
+    def test_create_experience_ajax_method_not_allowed(self):
+        self.client.force_login(self.superuser)
+        response = self.client.get(reverse("main:create_experience_ajax"))
+        self.assertEqual(response.status_code, 405)
+
+    def test_experience_form_clean_title_xss_empty(self):
+        form = ExperienceForm(data={
+            "title": '<img src="x" onerror="alert(1)">',
+            "category": "internship",
+            "description": "Valid description",
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn("title", form.errors)
+        self.assertIn("Judul pengalaman tidak boleh hanya berisi tag HTML.", form.errors["title"])
+
+    def test_experience_form_clean_description_xss_empty(self):
+        form = ExperienceForm(data={
+            "title": "Valid Title",
+            "category": "internship",
+            "description": '<img src="x" onerror="alert(1)">',
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn("description", form.errors)
+        self.assertIn("Deskripsi pengalaman tidak boleh hanya berisi tag HTML.", form.errors["description"])
+
+    def test_experience_form_clean_fields_strip_tags(self):
+        form = ExperienceForm(data={
+            "title": 'Intern <b>Lead</b>',
+            "category": "internship",
+            "description": 'Doing <i>cool</i> tasks <script>bad()</script>',
+        })
+        self.assertTrue(form.is_valid())
+        cleaned = form.cleaned_data
+        self.assertEqual(cleaned["title"], "Intern Lead")
+        self.assertEqual(cleaned["description"], "Doing cool tasks bad()")
+
+    def test_get_experience_json_star_info(self):
+        self.experience.starred_by.add(self.regular_user)
+
+        # Guest
+        res_guest = self.client.get(reverse("main:get_experience_json"))
+        self.assertEqual(res_guest.status_code, 200)
+        data_guest = res_guest.json()
+        target_guest = next(x for x in data_guest if x["pk"] == str(self.experience.id))
+        self.assertEqual(target_guest["fields"]["star_count"], 1)
+        self.assertFalse(target_guest["fields"]["is_starred"])
+        self.assertIn(self.regular_user.username, target_guest["fields"]["starred_by_names"])
+
+        # Authenticated as regular user (who starred)
+        self.client.force_login(self.regular_user)
+        res_user = self.client.get(reverse("main:get_experience_json"))
+        data_user = res_user.json()
+        target_user = next(x for x in data_user if x["pk"] == str(self.experience.id))
+        self.assertTrue(target_user["fields"]["is_starred"])
+
+    def test_toggle_experience_star_ajax_json_response(self):
+        self.client.force_login(self.regular_user)
+        star_url = reverse("main:toggle_experience_star", kwargs={"experience_id": self.experience.id})
+
+        # Request with Accept: application/json
+        response = self.client.post(star_url, HTTP_ACCEPT="application/json")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["fields"]["star_count"], 1)
+        self.assertTrue(data["fields"]["is_starred"])
+
+        # Toggle again
+        response2 = self.client.post(star_url, HTTP_ACCEPT="application/json")
+        self.assertEqual(response2.status_code, 200)
+        data2 = response2.json()
+        self.assertEqual(data2["fields"]["star_count"], 0)
+        self.assertFalse(data2["fields"]["is_starred"])
