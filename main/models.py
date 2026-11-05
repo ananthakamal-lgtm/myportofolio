@@ -57,6 +57,22 @@ class Project(models.Model):
             return []
         return [tag.strip() for tag in self.tech_stack.split(",") if tag.strip()]
 
+    @property
+    def project_url(self):
+        return self.demo_url or self.repo_url or ""
+
+    @project_url.setter
+    def project_url(self, value):
+        self.demo_url = value or ""
+
+    @property
+    def project_image_url(self):
+        return getattr(self, "_project_image_url", "")
+
+    @project_image_url.setter
+    def project_image_url(self, value):
+        self._project_image_url = value or ""
+
 class Achievement(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=200)
