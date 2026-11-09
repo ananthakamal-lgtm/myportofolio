@@ -59,14 +59,26 @@ function debounce(callback, delay = 300) {
 
 /**
  * Mengubah respons error JSON dari server menjadi daftar pesan yang mudah dibaca.
- * Mendukung format `{"errors": form.errors.get_json_data()}` maupun `{"message": "..."}`.
+ * Mendukung format DRF (`{"title": ["..."]}`, `{"detail": "..."}`) maupun
+ * format lama (`{"errors": form.errors.get_json_data()}`, `{"message": "..."}`).
  */
 function extractErrorMessages(result, status) {
-    if (result && result.errors) {
-        return Object.values(result.errors).flat().map(error => error.message);
+    if (result && typeof result === 'object') {
+        if (result.errors) {
+            return Object.values(result.errors).flat().map(error => error.message || String(error));
+        }
+        if (typeof result.detail === 'string') {
+            return [result.detail];
+        }
+        if (typeof result.message === 'string') {
+            return [result.message];
+        }
+        const flatMessages = Object.values(result)
+            .flat()
+            .filter(val => typeof val === 'string');
+        if (flatMessages.length > 0) {
+            return flatMessages;
+        }
     }
-    if (result && result.message) {
-        return [result.message];
-    }
-    return [`Terjadi kesalahan (status ${status}).`];
+    return [`Terjadi kesalahan (HTTP ${status}).`];
 }

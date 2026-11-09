@@ -12,15 +12,24 @@
             <div class="container">
                 <h1>{{ page_title|default:"Add New Experience" }}</h1>
 
-                <form method="post" class="project-form">
+                <form id="standalone-experience-form"
+                      method="post"
+                      class="project-form"
+                      {% if experience %}
+                      data-api-url="{% url 'api:experience-detail' experience.id %}"
+                      data-api-method="PATCH"
+                      {% else %}
+                      data-api-url="{% url 'api:experience-list' %}"
+                      data-api-method="POST"
+                      {% endif %}>
                     {% csrf_token %}
                     {% for field in form %}
                         <div class="form-group">
                             <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                             {{ field }}
-                            {% for error in field.errors %}
-                                <p class="form-error">{{ error }}</p>
-                            {% endfor %}
+                            <p class="form-error" data-error-for="{{ field.name }}" aria-live="polite">
+                                {% for error in field.errors %}{{ error }} {% endfor %}
+                            </p>
                         </div>
                     {% endfor %}
 
@@ -32,5 +41,49 @@
             </div>
         </section>
     </main>
-{% endblock content %}
 
+    <script>
+    (() => {
+        const form = document.getElementById('standalone-experience-form');
+        if (!form) return;
+
+        form.addEventListener('submit', async event => {
+            event.preventDefault();
+            const submitButton = form.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+
+            try {
+                const fields = new FormData(form);
+                const payload = Object.fromEntries([
+                    'title', 'category', 'description', 'thumbnail',
+                ].map(name => [name, fields.get(name) ?? '']));
+
+                const response = await fetch(form.dataset.apiUrl, {
+                    method: form.dataset.apiMethod || 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    const messages = extractErrorMessages(data, response.status);
+                    if (typeof showToast === 'function') {
+                        showToast('Gagal menyimpan pengalaman', messages.join(' '), 'error');
+                    }
+                    return;
+                }
+                window.location.href = "{% url 'main:show_experience' %}";
+            } catch (error) {
+                if (typeof showToast === 'function') {
+                    showToast('Gagal menyimpan pengalaman', 'Tidak dapat terhubung ke server.', 'error');
+                }
+            } finally {
+                submitButton.disabled = false;
+            }
+        });
+    })();
+    </script>
+{% endblock content %}
