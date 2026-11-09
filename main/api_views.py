@@ -1,3 +1,7 @@
+"""
+DRF Function-Based API Views for Project (Tutorial 07) and Experience (Tugas 6).
+"""
+
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
@@ -19,6 +23,7 @@ from main.serializers import ExperienceSerializer, ProjectSerializer
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsPortfolioOwnerOrReadOnly])
 def project_list(request):
+    """List all projects (with optional ?title= search) or create a new project."""
     if request.method in ("GET", "HEAD"):
         projects = Project.objects.prefetch_related("starred_by").order_by("title", "id")
         title = request.query_params.get("title", "").strip()
@@ -39,6 +44,7 @@ def project_list(request):
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsPortfolioOwnerOrReadOnly])
 def project_detail(request, project_id):
+    """Retrieve, update (PUT/PATCH), or delete a single project by UUID."""
     project = get_object_or_404(
         Project.objects.prefetch_related("starred_by"), pk=project_id,
     )
@@ -63,6 +69,7 @@ def project_detail(request, project_id):
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def project_star(request, project_id):
+    """Toggle star status on a project for the currently authenticated user."""
     project = get_object_or_404(Project, pk=project_id)
     if project.starred_by.filter(pk=request.user.pk).exists():
         project.starred_by.remove(request.user)
@@ -76,6 +83,7 @@ def project_star(request, project_id):
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
 def experience_list(request):
+    """List all experiences (with optional ?title= search) or create a new experience."""
     if request.method in ("GET", "HEAD"):
         experiences = Experience.objects.prefetch_related("starred_by").order_by("-started_at", "id")
         title = request.query_params.get("title", "").strip()
@@ -96,6 +104,7 @@ def experience_list(request):
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
 def experience_detail(request, experience_id):
+    """Retrieve, update (PUT/PATCH by Owner or Editor), or delete (Owner only) an experience."""
     experience = get_object_or_404(
         Experience.objects.prefetch_related("starred_by"), pk=experience_id,
     )
@@ -120,6 +129,7 @@ def experience_detail(request, experience_id):
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def experience_star(request, experience_id):
+    """Toggle star status on an experience for the currently authenticated user."""
     experience = get_object_or_404(Experience, pk=experience_id)
     if experience.starred_by.filter(pk=request.user.pk).exists():
         experience.starred_by.remove(request.user)
@@ -127,4 +137,3 @@ def experience_star(request, experience_id):
         experience.starred_by.add(request.user)
     serializer = ExperienceSerializer(experience, context={"request": request})
     return Response(serializer.data)
-

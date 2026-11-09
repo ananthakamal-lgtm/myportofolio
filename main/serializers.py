@@ -1,3 +1,10 @@
+"""
+DRF Serializers for Project (Tutorial 07) and Experience (Tugas 6).
+
+Handles bidirectional conversion between Django ORM instances and JSON-ready
+Python primitives, computed star metadata, and server-side XSS input validation.
+"""
+
 from django.utils.html import strip_tags
 from rest_framework import serializers
 
@@ -5,6 +12,8 @@ from main.models import Experience, Project
 
 
 class ProjectSerializer(serializers.ModelSerializer):
+    """Serializer for the Project model with computed star metadata and XSS validation."""
+
     project_url = serializers.URLField(required=False, allow_blank=True)
     project_image_url = serializers.URLField(required=False, allow_blank=True)
     category = serializers.CharField(max_length=100, required=False, allow_blank=True)
@@ -73,6 +82,15 @@ class ProjectSerializer(serializers.ModelSerializer):
 
 
 class ExperienceSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Experience model (Tugas 6).
+
+    Exposes explicit model fields alongside read-only computed star fields
+    (star_count, is_starred, starred_by_names) without leaking sensitive User data.
+    Sanitizes text fields with strip_tags to prevent stored XSS.
+    """
+
+    thumbnail = serializers.URLField(required=False, allow_blank=True, allow_null=True)
     category_display = serializers.CharField(source="get_category_display", read_only=True)
     is_ongoing = serializers.BooleanField(read_only=True)
     star_count = serializers.SerializerMethodField()
@@ -114,4 +132,3 @@ class ExperienceSerializer(serializers.ModelSerializer):
 
     def get_starred_by_names(self, obj):
         return ", ".join(user.username for user in obj.starred_by.all())
-
